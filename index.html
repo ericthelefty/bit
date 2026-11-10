@@ -174,7 +174,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
         </div>
 
         <div class="transport">
-          <button class="btn" type="button" data-act="home">Title</button>
+          <button class="btn" type="button" data-act="home">Welcome</button>
           <button class="btn big" type="button" data-act="prev">← Back</button>
           <button class="btn go big grow" type="button" data-act="next">Next →</button>
           <button class="btn big" type="button" data-act="dark" id="darkBtn">Blackout</button>
@@ -206,7 +206,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
             <div><kbd>→</kbd><kbd>Space</kbd> Next (clickers too)</div>
             <div><kbd>←</kbd> Back</div>
             <div><kbd>B</kbd> Blackout on / off</div>
-            <div><kbd>Home</kbd> / <kbd>End</kbd> Title / end card</div>
+            <div><kbd>Home</kbd> / <kbd>End</kbd> Welcome / end card</div>
             <div><kbd>P</kbd> Play / pause video</div>
             <div><kbd>R</kbd> Restart video</div>
             <div><kbd>1</kbd>–<kbd>0</kbd> Sounds 1–10</div>
@@ -494,7 +494,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     $("credBtn").hidden = !credItems.length;
     $("credBtn").innerHTML = !onCred ? "Roll credits <kbd>C</kbd>" : roll && roll.pausedAt ? "Resume credits <kbd>P</kbd>" : "Pause credits <kbd>P</kbd>";
     $("credBtn").classList.toggle("lit", onCred);
-    $("pos").textContent = !s ? "" : s.t === "credits" ? (credDone ? "Credits finished" : roll && roll.pausedAt ? "Credits paused" : "Credits rolling") : s.t === "title" ? "Title card" : s.t === "sec" ? s.sec : s.t === "end" ? "End card" :
+    $("pos").textContent = !s ? "" : s.t === "credits" ? (credDone ? "Credits finished" : roll && roll.pausedAt ? "Credits paused" : "Credits rolling") : s.t === "title" ? "Welcome card" : s.t === "sec" ? s.sec : s.t === "end" ? "End card" :
       s.t === "num" ? "Prompt " + (s.i + 1) + " number card" : s.t === "video" ? "Prompt " + (s.i + 1) + " video playing" : s.t === "dir" ? "Line " + prompts[s.i].n + " · direction " + (s.d + 1) + " of " + prompts[s.i].dirs.length : "Prompt " + (s.i + 1) + " of " + prompts.length;
     $("darkBtn").classList.toggle("lit", dark);
     $("darkBtn").textContent = dark ? "Blackout ON" : "Blackout";
