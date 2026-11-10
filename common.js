@@ -1,7 +1,7 @@
 /* Build a Bit: shared helpers for the console (index.html) and the audience screen (screen.html). */
 var BAB = (function () {
   var CHANNEL = "build-a-bit";
-  var BUILD = "2026-11-10.8";   // bump on every change so an open audience window knows it is out of date
+  var BUILD = "2026-11-10.9";   // bump on every change so an open audience window knows it is out of date
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -17,6 +17,7 @@ var BAB = (function () {
   var MINIGAME_ART = [
     { match: /d[’'`]?\s*improv/i, src: "art/its-dimprov.png", alt: "It's D'improv" },
     { match: /would you look at that/i, src: "art/would-you-look-at-that.png", alt: "Would You Look at That!" },
+    { match: /produce a ruckus/i, src: "art/produce-a-ruckus.png", alt: "Produce a Ruckus!" },
     { match: /^for (one|1) performer/i, src: "art/one-performer.png", alt: "One Performer" },
     { match: /^for (two|2) performers?/i, src: "art/two-performers.png", alt: "Two Performers" },
     { match: /^for (three|3) performers?/i, src: "art/three-performers.png", alt: "Three Performers" }
