@@ -1,0 +1,116 @@
+/* Build a Bit: shared helpers for the console (index.html) and the audience screen (screen.html). */
+var BAB = (function () {
+  var CHANNEL = "build-a-bit";
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  function isSection(l) {
+    return /^##\s*/.test(l) || /^for (one|two|three|four|five|\d+|all|everyone)\b.*performers?:?$/i.test(l);
+  }
+  function sectionName(l) { return l.replace(/^##\s*/, "").replace(/:$/, "").trim(); }
+
+  // "90", "1:30", "1:02:03", "1m30s", "90s" -> seconds
+  function parseTime(s) {
+    if (s == null || s === "") return null;
+    s = String(s).trim();
+    var m = s.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/i);
+    if (m && (m[1] || m[2] || m[3])) return (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0);
+    if (/^\d+(:\d{1,2}){1,2}$/.test(s)) return s.split(":").reduce(function (a, b) { return a * 60 + +b; }, 0);
+    return null;
+  }
+  function fmtTime(sec) {
+    if (sec == null || isNaN(sec)) return "";
+    sec = Math.max(0, Math.floor(sec));
+    var h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+    return (h ? h + ":" + (m < 10 ? "0" : "") : "") + m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  // Accepts youtu.be/ID, youtube.com/watch?v=ID, /shorts/ID, /embed/ID, /live/ID or a bare 11-character ID.
+  function ytParse(u) {
+    if (/^[A-Za-z0-9_-]{11}$/.test(u)) return { id: u, start: null };
+    var url;
+    try { url = new URL(/^https?:\/\//i.test(u) ? u : "https://" + u); } catch (e) { return null; }
+    var host = url.hostname.replace(/^www\.|^m\./, ""), id = null;
+    if (host === "youtu.be") id = url.pathname.slice(1).split("/")[0];
+    else if (/(^|\.)youtube(-nocookie)?\.com$/.test(host)) {
+      id = url.searchParams.get("v");
+      var pm = url.pathname.match(/^\/(shorts|embed|live|v)\/([^/?#]+)/);
+      if (!id && pm) id = pm[2];
+    }
+    if (!id || !/^[A-Za-z0-9_-]{11}$/.test(id)) return null;
+    return { id: id, start: parseTime(url.searchParams.get("t") || url.searchParams.get("start")) };
+  }
+
+  // "video: <url> [start-end] [caption]"  (the "| performers" part is split off before this runs)
+  function parseVideo(rest) {
+    var toks = rest.trim().split(/\s+/);
+    var yt = ytParse(toks.shift() || "");
+    if (!yt) return null;
+    var v = { id: yt.id, start: yt.start, end: null };
+    var tr = toks[0] && toks[0].match(/^([\dhms:]+)?-([\dhms:]+)?$|^([\dhms:]+)$/i);
+    if (tr) {
+      var a = parseTime(tr[1] || tr[3]), b = parseTime(tr[2]);
+      if (a != null || b != null) { toks.shift(); if (a != null) v.start = a; if (b != null) v.end = b; }
+    }
+    return { video: v, caption: toks.join(" ") };
+  }
+
+  function parse(text) {
+    var sec = "", out = [];
+    String(text || "").split(/\r?\n/).forEach(function (raw) {
+      var l = raw.trim();
+      if (!l) return;
+      if (isSection(l)) { sec = sectionName(l); return; }
+      if (l.charAt(0) === "#") return;
+      l = l.replace(/^([*\-•–]|\d+[.)])\s+/, "");
+      var i = l.indexOf("|");
+      var main = i === -1 ? l : l.slice(0, i).trim(), who = i === -1 ? "" : l.slice(i + 1).trim();
+      var p = { text: main, who: who, sec: sec, video: null };
+      var vm = main.match(/^video\s*:\s*(.+)$/i);
+      if (vm) {
+        var pv = parseVideo(vm[1]);
+        if (pv) { p.video = pv.video; p.text = pv.caption; }
+        else { p.bad = "Couldn't read that YouTube link"; }
+      }
+      if (p.text || p.video) out.push(p);
+    });
+    return out;
+  }
+
+  // opts: { numCard, showSec }
+  function buildSlides(prompts, opts) {
+    var slides = [{ t: "title" }], last = null;
+    prompts.forEach(function (p, i) {
+      if (p.sec && p.sec !== last && opts.showSec) slides.push({ t: "sec", sec: p.sec });
+      last = p.sec;
+      if (opts.numCard) slides.push({ t: "num", i: i });
+      slides.push({ t: "prompt", i: i });
+      if (p.video) slides.push({ t: "video", i: i });
+    });
+    slides.push({ t: "end" });
+    return slides;
+  }
+
+  // Self-contained description of one slide, sent to the screen.
+  function slideView(s, prompts) {
+    if (!s) return null;
+    var v = { t: s.t };
+    if (s.sec) v.sec = s.sec;
+    if (s.i != null) {
+      var p = prompts[s.i];
+      v.i = s.i; v.text = p.text; v.who = p.who; v.psec = p.sec; v.video = p.video;
+    }
+    return v;
+  }
+
+  function vkey(v) { return v ? v.id + "|" + (v.start || 0) + "|" + (v.end || "") : ""; }
+
+  return {
+    CHANNEL: CHANNEL, esc: esc, parse: parse, parseTime: parseTime, fmtTime: fmtTime,
+    ytParse: ytParse, buildSlides: buildSlides, slideView: slideView, vkey: vkey
+  };
+})();

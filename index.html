@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build a Bit · Console</title>
+<link rel="icon" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Archivo:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+/* Operator console. Same dark house + marquee-bulb palette as the audience screen. */
+:root {
+  --house: #14121c; --panel: #1f1c2b; --line: #34304a; --chalk: #f4efe4; --dim: #a59fb8;
+  --bulb: #ffbe3d; --curtain: #c2364a; --ok: #5fd39a;
+  --display: "Big Shoulders Display", "Impact", "Arial Narrow", sans-serif;
+  --body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { background: var(--house); color: var(--chalk); font-family: var(--body); font-size: 15px; }
+button, input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--bulb); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+header.top { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; padding: 12px 20px; background: rgba(20,18,28,.96); border-bottom: 2px solid var(--line); }
+header.top h1 { margin: 0; line-height: 0; }
+header.top h1 img { height: 44px; width: auto; display: block; }
+.tabs { display: flex; gap: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 9px; padding: 4px; }
+.tabs button { border: 0; background: none; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; color: var(--dim); }
+.tabs button[aria-selected=true] { background: var(--house); color: var(--chalk); box-shadow: inset 0 -2px 0 var(--bulb); }
+.screenctl { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pill { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--dim); background: var(--panel); border: 1px solid var(--line); border-radius: 99px; padding: 6px 12px; white-space: nowrap; }
+.pill::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+.pill.on { color: var(--chalk); }
+.pill.on::before { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.pill.warn::before { background: var(--bulb); }
+
+main { padding: 20px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; align-content: start; }
+.lbl { font-size: 12.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+.hint { font-size: 13.5px; color: var(--dim); line-height: 1.5; margin: 0; }
+.hint code, code { background: var(--house); border: 1px solid var(--line); padding: 1px 5px; border-radius: 4px; color: var(--chalk); font-size: 12.5px; }
+input[type=text], textarea, select { width: 100%; background: var(--house); border: 1px solid var(--line); border-radius: 6px; padding: 9px 11px; }
+textarea { min-height: 460px; resize: vertical; line-height: 1.5; font-size: 15px; }
+input[type=range] { accent-color: var(--bulb); }
+.check { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.check input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--bulb); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { border: 1px solid var(--line); background: var(--house); border-radius: 6px; padding: 8px 13px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+.btn:hover { border-color: var(--dim); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.go { background: var(--bulb); color: #1a1408; border-color: var(--bulb); font-weight: 800; }
+.btn.go:hover { filter: brightness(1.08); }
+.btn.big { font-size: 17px; padding: 12px 18px; font-weight: 800; }
+.btn.lit { background: var(--curtain); border-color: var(--curtain); color: var(--chalk); }
+.btn.danger:hover { border-color: var(--curtain); color: #ff8a98; }
+kbd { font-family: var(--body); font-weight: 800; font-size: 11.5px; background: var(--house); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; color: var(--chalk); white-space: nowrap; }
+.warnbox { border: 1px solid rgba(255,190,61,.5); background: rgba(255,190,61,.08); color: var(--chalk); border-radius: 8px; padding: 10px 12px; font-size: 13.5px; line-height: 1.45; }
+
+/* ---------- Prompts tab ---------- */
+.ptab { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr); gap: 20px; max-width: 1280px; }
+@media (max-width: 900px) { .ptab { grid-template-columns: 1fr; } }
+
+/* ---------- Sounds tab ---------- */
+.stab { max-width: 980px; display: grid; gap: 16px; }
+.drop { border: 2px dashed var(--line); border-radius: 10px; padding: 26px; text-align: center; color: var(--dim); display: grid; gap: 10px; justify-items: center; }
+.drop.over { border-color: var(--bulb); background: rgba(255,190,61,.06); color: var(--chalk); }
+.drop b { color: var(--chalk); font-size: 17px; }
+ul.slist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+ul.slist li { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto auto auto auto; gap: 10px; align-items: center; background: var(--house); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+ul.slist .key { font-family: var(--display); font-weight: 900; font-size: 20px; color: var(--bulb); text-align: center; }
+ul.slist .key.none { color: var(--line); font-size: 14px; }
+ul.slist .dur { font-size: 12.5px; color: var(--dim); font-variant-numeric: tabular-nums; }
+ul.slist .vol { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--dim); }
+ul.slist .vol input { width: 110px; }
+ul.slist .mini { padding: 5px 9px; font-size: 13px; }
+.empty { color: var(--dim); margin: 0; }
+
+/* ---------- Run tab ---------- */
+.run { display: grid; grid-template-columns: 290px minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
+@media (max-width: 1180px) { .run { grid-template-columns: 250px minmax(0, 1fr); } .run .board { grid-column: 1 / -1; } }
+.order { position: sticky; top: 80px; max-height: calc(100vh - 100px); }
+ol.list { margin: 0; padding: 0; list-style: none; display: grid; gap: 5px; overflow-y: auto; max-height: calc(100vh - 170px); padding-right: 4px; }
+ol.list li { display: grid; grid-template-columns: 2em 1fr; gap: 6px; padding: 7px 9px; background: var(--house); border-radius: 6px; border-left: 3px solid var(--line); font-size: 13.5px; line-height: 1.3; cursor: pointer; }
+ol.list li:hover { border-left-color: var(--dim); }
+ol.list li.done { opacity: .55; }
+ol.list li.now { border-left-color: var(--bulb); background: #2a2538; opacity: 1; }
+ol.list li.bad { border-left-color: var(--curtain); }
+ol.list .n { font-family: var(--display); font-weight: 900; font-size: 16px; color: var(--bulb); font-variant-numeric: tabular-nums; }
+ol.list .p { display: block; color: var(--dim); font-size: 12px; margin-top: 2px; }
+ol.list .v { display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: .06em; color: #1a1408; background: var(--bulb); border-radius: 3px; padding: 1px 5px; margin-right: 5px; vertical-align: 1px; }
+ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px; }
+.sechd { font-family: var(--display); font-weight: 900; text-transform: uppercase; letter-spacing: .06em; font-size: 15px; margin: 8px 0 1px; cursor: default; }
+.mid { display: grid; gap: 14px; }
+.previews { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr); gap: 14px; align-items: end; }
+.pvbox { display: grid; gap: 6px; }
+.pvbox .lbl { display: flex; justify-content: space-between; gap: 10px; }
+.pvbox .lbl span { color: var(--chalk); text-transform: none; letter-spacing: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pv { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 8px; border: 1px solid var(--line); background: #000; }
+.pv.live { border-color: var(--curtain); box-shadow: 0 0 0 1px var(--curtain); }
+.pv iframe { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; pointer-events: none; }
+.transport { display: flex; flex-wrap: wrap; gap: 8px; }
+.transport .grow { flex: 1; }
+.vpanel { border-color: rgba(255,190,61,.45); }
+.vtop { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.vstate { font-weight: 800; font-size: 14px; }
+.vstate.playing { color: var(--ok); }
+.vrow { display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 12px; align-items: center; }
+.vrow img { width: 128px; aspect-ratio: 16/9; object-fit: cover; border-radius: 6px; background: #000; }
+.vtitle { font-weight: 700; line-height: 1.3; }
+.vbar { height: 6px; background: var(--house); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+.vbar i { display: block; height: 100%; width: 0; background: var(--bulb); }
+.verr { margin: 0; color: #ff8a98; font-size: 13.5px; }
+.keys { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 6px 14px; font-size: 13px; color: var(--dim); }
+.keys div { display: flex; gap: 8px; align-items: center; }
+
+/* Sound board */
+.board { position: sticky; top: 80px; }
+.bhead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bhead .lbl { flex: 1; }
+.bhead input[type=range] { width: 90px; }
+.pads { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.pad { position: relative; overflow: hidden; min-height: 74px; border: 1px solid var(--line); border-bottom-width: 3px; background: var(--house); border-radius: 8px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 6px; text-align: center; transition: transform .08s, border-color .15s; }
+.pad:hover { border-color: var(--dim); }
+.pad b { font-family: var(--display); font-weight: 900; font-size: 20px; line-height: 1; color: var(--bulb); }
+.pad span { overflow-wrap: anywhere; font-size: 12px; font-weight: 600; line-height: 1.15; color: var(--chalk); }
+.pad em { position: absolute; top: 4px; right: 6px; font-style: normal; font-size: 11px; color: var(--dim); }
+.pad .prog { position: absolute; left: 0; bottom: 0; height: 4px; width: 0; background: var(--bulb); }
+.pad.on { border-color: var(--bulb); background: #2d2717; }
+.pad.fading { border-color: var(--dim); }
+.pad.hit { transform: translateY(2px); }
+.audiowarn { cursor: pointer; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1><img src="logo.png" alt="Build a Bit"></h1>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="run" aria-selected="false">Run show</button>
+    <button role="tab" data-tab="prompts" aria-selected="false">Prompts</button>
+    <button role="tab" data-tab="sounds" aria-selected="false">Sounds</button>
+  </nav>
+  <div class="screenctl">
+    <span class="pill" id="scrStatus">Audience screen not open</span>
+    <button class="btn go" id="openScr" type="button">Open audience screen</button>
+  </div>
+</header>
+
+<main>
+  <!-- ================= RUN ================= -->
+  <section id="tab-run" role="tabpanel" hidden>
+    <div class="run">
+      <aside class="card order">
+        <div class="row" style="justify-content:space-between"><span class="lbl">Running order</span><span class="lbl" id="count"></span></div>
+        <ol class="list" id="list"></ol>
+      </aside>
+
+      <div class="mid">
+        <div class="previews">
+          <div class="pvbox">
+            <div class="lbl">On screen <span id="pos"></span></div>
+            <div class="pv live" id="pvCur"><iframe src="screen.html?preview=cur" title="What the audience sees" tabindex="-1"></iframe></div>
+          </div>
+          <div class="pvbox">
+            <div class="lbl">Next</div>
+            <div class="pv" id="pvNext"><iframe src="screen.html?preview=next" title="Next slide" tabindex="-1"></iframe></div>
+          </div>
+        </div>
+
+        <div class="transport">
+          <button class="btn" type="button" data-act="home">Title</button>
+          <button class="btn big" type="button" data-act="prev">← Back</button>
+          <button class="btn go big grow" type="button" data-act="next">Next →</button>
+          <button class="btn big" type="button" data-act="dark" id="darkBtn">Blackout</button>
+          <button class="btn" type="button" data-act="end">End card</button>
+        </div>
+
+        <div class="card vpanel" id="vpanel" hidden>
+          <div class="vtop"><span class="lbl" id="vHead">Video prompt</span><span class="vstate" id="vState"></span></div>
+          <div class="vrow">
+            <img id="vThumb" alt="" onerror="this.style.visibility='hidden'" onload="this.style.visibility=''">
+            <div>
+              <div class="vtitle" id="vTitle"></div>
+              <div class="hint" id="vRange"></div>
+              <div class="vbar"><i id="vProg"></i></div>
+            </div>
+          </div>
+          <div class="row">
+            <button class="btn" type="button" id="vPlay">Play / pause <kbd>P</kbd></button>
+            <button class="btn" type="button" id="vRestart">Restart <kbd>R</kbd></button>
+            <label class="row" style="gap:8px;margin-left:auto;font-size:13px;color:var(--dim)">Video volume <input type="range" id="vVol" min="0" max="1" step="0.05"></label>
+          </div>
+          <p class="verr" id="vErr" hidden></p>
+        </div>
+
+        <div class="card">
+          <span class="lbl">Keys (work in either window)</span>
+          <div class="keys">
+            <div><kbd>→</kbd><kbd>Space</kbd> Next (clickers too)</div>
+            <div><kbd>←</kbd> Back</div>
+            <div><kbd>B</kbd> Blackout on / off</div>
+            <div><kbd>Home</kbd> / <kbd>End</kbd> Title / end card</div>
+            <div><kbd>P</kbd> Play / pause video</div>
+            <div><kbd>R</kbd> Restart video</div>
+            <div><kbd>1</kbd>–<kbd>0</kbd> Sounds 1–10</div>
+            <div><kbd>⇧</kbd>+<kbd>1</kbd>–<kbd>0</kbd> Sounds 11–20</div>
+            <div><kbd>X</kbd> Stop all sounds</div>
+            <div><kbd>⇧</kbd>+<kbd>X</kbd> Fade out all sounds</div>
+            <div><kbd>F</kbd> Full screen (audience window)</div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="card board">
+        <div class="bhead">
+          <span class="lbl">Sound board</span>
+          <label for="mvol" class="lbl" style="flex:0">Vol</label>
+          <input type="range" id="mvol" min="0" max="1" step="0.05">
+        </div>
+        <div class="warnbox audiowarn" id="audioWarn" hidden>Sounds are paused by the browser. Click here once to turn them on.</div>
+        <div class="pads" id="pads"></div>
+        <p class="empty" id="padsEmpty">No sounds yet. Add your files on the <a href="#" data-goto="sounds" style="color:var(--bulb)">Sounds</a> tab.</p>
+        <div class="row">
+          <button class="btn" type="button" id="fadeAll">Fade all <kbd>⇧X</kbd></button>
+          <button class="btn danger" type="button" id="stopAll">Stop all <kbd>X</kbd></button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ================= PROMPTS ================= -->
+  <section id="tab-prompts" role="tabpanel" hidden>
+    <div class="ptab">
+      <div class="card">
+        <label class="lbl" for="showName">Subtitle under the logo (optional)</label>
+        <input type="text" id="showName" placeholder="Shows on the title and end cards">
+        <label class="lbl" for="prompts">Prompts, one per line</label>
+        <textarea id="prompts" spellcheck="true"></textarea>
+        <div class="row">
+          <button class="btn" id="shuffleBtn" type="button">Shuffle within sections</button>
+          <button class="btn danger" id="clearBtn" type="button">Clear prompts</button>
+        </div>
+      </div>
+      <div class="card">
+        <span class="lbl">How to write them</span>
+        <p class="hint">One prompt per line. Add performers after a bar: <code>A sea shanty about a parking ticket | Dana &amp; Luis</code></p>
+        <p class="hint">Start a section with <code>## For Two Performers</code>. Its name shows under each prompt in that section.</p>
+        <p class="hint"><b style="color:var(--chalk)">Video prompts:</b> start the line with <code>video:</code>, then the YouTube link, then an optional time range and caption:</p>
+        <p class="hint"><code>video: https://youtu.be/abc123XYZ90 0:30-1:45 Dub this nature doc | Dana &amp; Luis</code></p>
+        <p class="hint">The screen shows the prompt card first. Press Next to play the clip full screen, then Next again to move on. The time range is optional, and a <code>?t=</code> in the link also sets the start.</p>
+        <p class="hint">Bullets are stripped, blank lines are skipped, and lines starting with a single <code>#</code> are notes that never show.</p>
+        <div id="warns" class="warnbox" hidden></div>
+        <span class="lbl" style="margin-top:6px">Options</span>
+        <label class="check"><input type="checkbox" id="numCard"> <span>Show a big “Prompt #” card before each prompt</span></label>
+        <label class="check"><input type="checkbox" id="showSec" checked> <span>Show a section card when a new section starts</span></label>
+        <label class="check"><input type="checkbox" id="showDots" checked> <span>Show progress dots on screen</span></label>
+        <label class="lbl" for="psound" style="margin-top:6px">Sound when a new prompt appears</label>
+        <select id="psound"><option value="">None</option></select>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SOUNDS ================= -->
+  <section id="tab-sounds" role="tabpanel" hidden>
+    <div class="stab">
+      <div class="card">
+        <div class="drop" id="drop">
+          <b>Drop audio files here</b>
+          <span>MP3, WAV, M4A, AAC, OGG or FLAC</span>
+          <label class="btn go">Choose files<input type="file" id="fileIn" multiple accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac" hidden></label>
+        </div>
+        <p class="hint">Sounds are saved in this browser on this Mac, so you only add them once. If you switch browsers or computers, add them again there. The first 10 sounds get keys <kbd>1</kbd>–<kbd>0</kbd> and the next 10 get <kbd>⇧</kbd>+<kbd>1</kbd>–<kbd>0</kbd>. Use the arrows to reorder. <b style="color:var(--chalk)">Loop</b> sounds (like walk-in music) repeat until you press their key again, then fade out. Other sounds restart each time you press them.</p>
+      </div>
+      <ul class="slist" id="slist"></ul>
+      <p class="empty" id="slistEmpty">No sounds added yet.</p>
+    </div>
+  </section>
+</main>
+
+<script src="common.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = BAB.esc;
+  var store = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+
+  var EXAMPLES = "## For One Performer\n* Open auditions for most performative male.\n* Using your valedictorian speech to ask out that hot teacher.\n* An undercover alien playing flip cup for the first time.\n* A barista who hates you but loves your dog.\n* Training Day but you’re at a vegan bakery.\n* Trying to impress your date by ordering in French at McDonald’s.\n* Realizing that wasn’t toothpaste.\n* In line at the Post Office and inefficiency makes you horny.\n* Scandinavian milk maid finds the one.\n* Frodo asks Sam for space.\n* Convincing your evil billionaire husband to take up paragliding.\n* RFK jr. has some fatherly advice.\n* Your air fryer becomes sentient.\n* When Netflix knows you too well.\n* Your corduroy pants are a problem.\n* The garden center clerk is worried about you.\n* Auctioneer desperate for the attention of their ex in the audience.\n* The first poem ever written.\n* This Hazy IPA has actual pine cones in it.\n\n## For Two Performers\n* Jack is pretty sure there’s room on the floating door for him.\n* A first date is doomed before the appetizer arrives.\n* HR needs to talk about your peanut butter usage.\n* The sandwich artists needs you to appreciate their art.\n* Trying to fold clothes but a customer wants to try on every size.\n* The more they dislike you the more you’re in love.\n* Grandpa can’t answer the phone normally.\n* The greeting card store is a front for exotic pets.\n* Abbott and Costello and their famous “who’s on thirst” routine.\n* The two most sarcastic people in the world plan a road trip.\n\n## For Three Performers\n* The podium ceremony at the Passive Aggressive Olympics.\n* The men’s restroom line is actually very warm and inclusive.\n* Telling your musical theater parents you really want to become a HVAC technician.\n* Mickey and Donald finally tell Minnie the truth.\n* Becoming more Italian every time someone says “Hey.”\n* Bringing home your boyfriend to your mom, Medusa.\n* Canadians when there aren’t Americans around.\n* Your typical group chat where there’s one person that never says anything and then when they do it’s totally unhinged and you wonder why they’re in the group chat to begin with.\n* When you realize there’s another group chat you’re not a part of.\n* You’re in the movie Braveheart but it’s the deleted scene where everybody just talks about their feelings.\n* Cheerleaders for Portland drivers.";
+
+  var bc = new BroadcastChannel(BAB.CHANNEL);
+  function post(m) { bc.postMessage(m); }
+
+  // ================= Tabs =================
+  function setTab(t) {
+    document.querySelectorAll(".tabs button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.tab === t ? "true" : "false"); });
+    ["run", "prompts", "sounds"].forEach(function (n) { $("tab-" + n).hidden = n !== t; });
+    store.set("bab.tab", t);
+    if (t === "run") { sizePreviews(); scrollNow(); }
+  }
+  document.querySelector(".tabs").addEventListener("click", function (e) { var b = e.target.closest("button[data-tab]"); if (b) setTab(b.dataset.tab); });
+  document.addEventListener("click", function (e) { var a = e.target.closest("[data-goto]"); if (a) { e.preventDefault(); setTab(a.dataset.goto); } });
+
+  // ================= Prompts & slides =================
+  var ta = $("prompts"), nameIn = $("showName"), numCard = $("numCard"), showSec = $("showSec"), showDots = $("showDots"), psound = $("psound");
+  ta.value = store.get("bab.prompts") != null ? store.get("bab.prompts") : EXAMPLES;
+  nameIn.value = store.get("bab.name") || "";
+  numCard.checked = store.get("bab.numCard") === "1";
+  showSec.checked = store.get("bab.sec") !== "0";
+  showDots.checked = store.get("bab.dots") !== "0";
+
+  var prompts = [], slides = [], idx = +(store.get("bab.idx") || 0), dark = false;
+
+  function saveOpts() {
+    store.set("bab.prompts", ta.value); store.set("bab.name", nameIn.value);
+    store.set("bab.numCard", numCard.checked ? "1" : "0"); store.set("bab.sec", showSec.checked ? "1" : "0"); store.set("bab.dots", showDots.checked ? "1" : "0");
+    if (soundsLoaded) store.set("bab.psound", psound.value);
+  }
+
+  function rebuild() {
+    var curI = slides[idx] ? slides[idx].i : null, curT = slides[idx] ? slides[idx].t : null;
+    prompts = BAB.parse(ta.value);
+    slides = BAB.buildSlides(prompts, { numCard: numCard.checked, showSec: showSec.checked });
+    // Try to stay on the same prompt after an edit.
+    if (curI != null) { for (var k = 0; k < slides.length; k++) if (slides[k].i === curI && slides[k].t === curT) { idx = k; break; } }
+    idx = Math.max(0, Math.min(slides.length - 1, idx));
+    renderList(); renderWarns(); update();
+  }
+  [ta, nameIn].forEach(function (el) { el.addEventListener("input", function () { saveOpts(); rebuild(); }); });
+  [numCard, showSec, showDots, psound].forEach(function (el) { el.addEventListener("change", function () { saveOpts(); rebuild(); }); });
+
+  function renderWarns() {
+    var bad = prompts.filter(function (p) { return p.bad; });
+    var w = $("warns");
+    w.hidden = !bad.length;
+    w.innerHTML = bad.map(function (p) { return "Couldn't read the YouTube link in: <code>" + esc(p.text) + "</code>"; }).join("<br>");
+  }
+
+  function renderList() {
+    $("count").textContent = prompts.length + (prompts.length === 1 ? " prompt" : " prompts");
+    var ol = $("list");
+    if (!prompts.length) { ol.innerHTML = '<li style="cursor:default"><span></span><span class="empty">No prompts yet. Add some on the Prompts tab.</span></li>'; return; }
+    var last = null;
+    ol.innerHTML = prompts.map(function (p, i) {
+      var h = "";
+      if (p.sec !== last) { last = p.sec; if (p.sec) h = '<div class="sechd">' + esc(p.sec) + '</div>'; }
+      return h + '<li data-i="' + i + '" class="' + (p.bad ? "bad" : "") + '"><span class="n">' + (i + 1) + '</span><span>' +
+        (p.video ? '<span class="v">VIDEO</span>' : "") + esc(p.text || (p.video ? "(no caption)" : "")) +
+        (p.who ? '<span class="p">' + esc(p.who) + '</span>' : "") +
+        (p.bad ? '<span class="err">' + esc(p.bad) + '</span>' : "") + '</span></li>';
+    }).join("");
+    markList();
+  }
+  function curPromptIndex() {
+    var s = slides[idx]; if (!s) return -1;
+    if (s.i != null) return s.i;
+    if (s.t === "end") return prompts.length;
+    for (var k = idx; k < slides.length; k++) if (slides[k].i != null) return slides[k].i - 0.5;
+    return -1;
+  }
+  function markList() {
+    var c = curPromptIndex();
+    document.querySelectorAll("#list li[data-i]").forEach(function (li) {
+      var i = +li.dataset.i;
+      li.classList.toggle("now", i === c);
+      li.classList.toggle("done", i < c);
+    });
+  }
+  function scrollNow() { var li = document.querySelector("#list li.now"); if (li) li.scrollIntoView({ block: "nearest" }); }
+  $("list").addEventListener("click", function (e) {
+    var li = e.target.closest("li[data-i]"); if (!li) return;
+    var i = +li.dataset.i;
+    for (var k = 0; k < slides.length; k++) if (slides[k].i === i) { jump(k); if (slides[k].t === "prompt") promptSound(); break; }
+  });
+
+  $("shuffleBtn").onclick = function () {
+    var blocks = [{ head: [], items: [] }];
+    ta.value.split(/\r?\n/).forEach(function (raw) {
+      var t = raw.trim();
+      if (/^##\s*/.test(t) || /^for (one|two|three|four|five|\d+|all|everyone)\b.*performers?:?$/i.test(t)) blocks.push({ head: [raw], items: [] });
+      else if (!t || t.charAt(0) === "#") { if (t) blocks[blocks.length - 1].head.push(raw); }
+      else blocks[blocks.length - 1].items.push(raw);
+    });
+    ta.value = blocks.filter(function (b) { return b.head.length || b.items.length; }).map(function (b) {
+      var it = b.items;
+      for (var i = it.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = it[i]; it[i] = it[j]; it[j] = t; }
+      return b.head.concat(it).join("\n");
+    }).join("\n\n");
+    saveOpts(); rebuild();
+  };
+  var clearArmed = false;
+  $("clearBtn").onclick = function () {
+    var b = this;
+    if (!clearArmed) { clearArmed = true; b.textContent = "Click again to clear"; setTimeout(function () { clearArmed = false; b.textContent = "Clear prompts"; }, 3000); return; }
+    ta.value = ""; saveOpts(); rebuild(); b.textContent = "Clear prompts"; clearArmed = false; ta.focus();
+  };
+
+  // ================= Show control =================
+  function progOf(k) {
+    var s = slides[k]; if (!s) return prompts.length;
+    if (s.i != null) return s.i;
+    if (s.t === "end") return prompts.length;
+    if (s.t === "title") return -1;
+    for (var j = k; j < slides.length; j++) if (slides[j].i != null) return slides[j].i - 0.5;
+    return prompts.length;
+  }
+  function stateMsg() {
+    return {
+      type: "state", cur: BAB.slideView(slides[idx], prompts), next: BAB.slideView(slides[idx + 1], prompts),
+      name: nameIn.value.trim(), total: prompts.length, prog: progOf(idx), nextProg: progOf(idx + 1),
+      dots: showDots.checked, dark: dark
+    };
+  }
+  function send() { post(stateMsg()); }
+
+  function update() {
+    store.set("bab.idx", String(idx));
+    var s = slides[idx];
+    $("pos").textContent = !s ? "" : s.t === "title" ? "Title card" : s.t === "sec" ? s.sec : s.t === "end" ? "End card" :
+      s.t === "num" ? "Prompt " + (s.i + 1) + " number card" : s.t === "video" ? "Prompt " + (s.i + 1) + " video playing" : "Prompt " + (s.i + 1) + " of " + prompts.length;
+    $("darkBtn").classList.toggle("lit", dark);
+    $("darkBtn").textContent = dark ? "Blackout ON" : "Blackout";
+    markList(); scrollNow();
+    renderVideoPanel();
+    send();
+  }
+
+  function go(d) {
+    var n = Math.max(0, Math.min(slides.length - 1, idx + d));
+    if (n === idx) return;
+    idx = n; update();
+    if (d > 0 && slides[idx].t === "prompt") promptSound();
+  }
+  function jump(k) { idx = Math.max(0, Math.min(slides.length - 1, k)); update(); }
+  function toggleDark() { dark = !dark; update(); }
+
+  document.querySelector(".transport").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-act]"); if (!b) return;
+    ({ prev: function () { go(-1); }, next: function () { go(1); }, dark: toggleDark, home: function () { jump(0); }, end: function () { jump(slides.length - 1); } })[b.dataset.act]();
+  });
+
+  // ================= Previews =================
+  function sizePreviews() {
+    ["pvCur", "pvNext"].forEach(function (id) {
+      var box = $(id), f = box.querySelector("iframe");
+      if (box.clientWidth) f.style.transform = "scale(" + box.clientWidth / 1920 + ")";
+    });
+  }
+  if (window.ResizeObserver) new ResizeObserver(sizePreviews).observe($("pvCur"));
+  window.addEventListener("resize", sizePreviews);
+
+  // ================= Audience screen =================
+  var scrWin = null, screenInfo = null, lastPong = 0;
+  function extScreen() {
+    if (!screenInfo) return null;
+    var cur = screenInfo.currentScreen;
+    return screenInfo.screens.filter(function (s) { return s !== cur && s.label !== (cur && cur.label); })[0] || null;
+  }
+  (function () {
+    if (!("getScreenDetails" in window) || !navigator.permissions) return;
+    navigator.permissions.query({ name: "window-management" }).then(function (p) {
+      if (p.state === "granted") window.getScreenDetails().then(function (d) { screenInfo = d; }).catch(function () {});
+    }).catch(function () {});
+  })();
+  function placeOn(win, s) { try { win.moveTo(s.availLeft, s.availTop); win.resizeTo(s.availWidth, s.availHeight); } catch (e) {} }
+
+  $("openScr").onclick = function () {
+    unlockAudio();
+    if (scrWin && !scrWin.closed) { scrWin.focus(); var e1 = extScreen(); if (e1) placeOn(scrWin, e1); return; }
+    var ext = extScreen();
+    var feat = ext ? "popup,left=" + ext.availLeft + ",top=" + ext.availTop + ",width=" + ext.availWidth + ",height=" + ext.availHeight : "popup,width=1280,height=720";
+    scrWin = window.open("screen.html", "bab-screen", feat);
+    if (!scrWin) { alert("The browser blocked the audience window. Allow pop-ups for this site, then try again."); return; }
+    if (!ext && "getScreenDetails" in window) {
+      window.getScreenDetails().then(function (d) {
+        screenInfo = d; var e2 = extScreen();
+        if (e2 && scrWin && !scrWin.closed) placeOn(scrWin, e2);
+      }).catch(function () {});
+    }
+  };
+
+  setInterval(function () { post({ type: "ping" }); paintStatus(); }, 2000);
+  function paintStatus() {
+    var on = Date.now() - lastPong < 5000, el = $("scrStatus");
+    el.classList.toggle("on", on);
+    el.textContent = on ? "Audience screen connected" : "Audience screen not open";
+    $("openScr").textContent = on ? "Show audience window" : "Open audience screen";
+  }
+
+  // ================= Video =================
+  var vstat = {}, vvol = +(store.get("bab.vvol") || 1);
+  $("vVol").value = vvol;
+  $("vVol").addEventListener("input", function () { vvol = +this.value; store.set("bab.vvol", this.value); post({ type: "vcmd", cmd: "vol", v: vvol }); });
+  $("vVol").addEventListener("change", function () { this.blur(); });
+  $("vPlay").onclick = function () { post({ type: "vcmd", cmd: "toggle" }); };
+  $("vRestart").onclick = function () { post({ type: "vcmd", cmd: "restart" }); };
+
+  function panelVideo() {
+    var s = slides[idx], n = slides[idx + 1];
+    if (s && s.i != null && prompts[s.i].video && (s.t === "video" || s.t === "prompt" || s.t === "num")) return { s: s, live: s.t === "video" };
+    if (n && n.i != null && prompts[n.i].video) return { s: n, live: false };
+    return null;
+  }
+  function renderVideoPanel() {
+    var pv = panelVideo(), panel = $("vpanel");
+    panel.hidden = !pv;
+    if (!pv) return;
+    var p = prompts[pv.s.i], v = p.video;
+    $("vHead").textContent = "Video prompt " + (pv.s.i + 1) + (pv.live ? " · on screen" : " · up next");
+    $("vThumb").src = "https://i.ytimg.com/vi/" + v.id + "/mqdefault.jpg";
+    $("vTitle").textContent = p.text || "youtu.be/" + v.id;
+    $("vRange").textContent = (v.start || v.end) ? "Plays " + BAB.fmtTime(v.start || 0) + (v.end ? " to " + BAB.fmtTime(v.end) : " to the end") : "Plays from the start";
+    $("vPlay").disabled = $("vRestart").disabled = !pv.live;
+    paintVstat();
+  }
+  function paintVstat() {
+    var pv = panelVideo(); if (!pv) return;
+    var v = prompts[pv.s.i].video, st = $("vState"), err = $("vErr");
+    var connected = Date.now() - lastPong < 5000;
+    var mine = vstat.key === BAB.vkey(v);
+    var label = "", cls = "";
+    if (!connected) label = "Open the audience screen to play";
+    else if (vstat.err && (mine || !vstat.key)) label = "Problem";
+    else if (!mine) label = vstat.state === "loading" ? "Loading YouTube…" : "Getting ready…";
+    else label = { playing: "Playing", paused: "Paused", ended: "Clip ended", buffering: "Buffering…", ready: pv.live ? "Ready" : "Loaded and ready", unstarted: pv.live ? "Starting…" : "Loaded", loading: "Loading YouTube…" }[vstat.state] || "";
+    if (mine && vstat.state === "playing") cls = "playing";
+    var t = mine && vstat.t != null ? vstat.t : (v.start || 0);
+    var startT = v.start || 0, endT = v.end || (mine && vstat.dur) || 0;
+    if (mine && pv.live && vstat.t != null) label += " · " + BAB.fmtTime(t - startT) + (endT ? " / " + BAB.fmtTime(endT - startT) : "");
+    st.textContent = label; st.className = "vstate " + cls;
+    $("vProg").style.width = endT > startT ? Math.max(0, Math.min(100, (t - startT) / (endT - startT) * 100)) + "%" : "0";
+    var e = connected && vstat.err && (mine || !vstat.key) ? vstat.err : "";
+    err.hidden = !e; err.textContent = e;
+  }
+
+  bc.onmessage = function (e) {
+    var m = e.data || {};
+    if (m.type === "hello") { send(); if (m.role === "main") { lastPong = Date.now(); post({ type: "vcmd", cmd: "vol", v: vvol }); paintStatus(); } }
+    else if (m.type === "pong") { var was = Date.now() - lastPong < 5000; lastPong = Date.now(); if (!was) { paintStatus(); renderVideoPanel(); } }
+    else if (m.type === "bye") { lastPong = 0; paintStatus(); renderVideoPanel(); }
+    else if (m.type === "vstat") { vstat = m; paintVstat(); }
+    else if (m.type === "key") { handleKey(m); }
+  };
+
+  // ================= Sound board =================
+  var AC = null, master = null, sounds = [], act = {}, soundsLoaded = false, mvol = +(store.get("bab.mvol") || 0.85);
+  try { AC = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: "interactive" }); master = AC.createGain(); master.gain.value = mvol; master.connect(AC.destination); } catch (e) { AC = null; }
+  $("mvol").value = mvol;
+  $("mvol").addEventListener("input", function () { mvol = +this.value; store.set("bab.mvol", this.value); if (master) master.gain.setTargetAtTime(mvol, AC.currentTime, 0.02); });
+  $("mvol").addEventListener("change", function () { this.blur(); });
+
+  function unlockAudio() { if (AC && AC.state !== "running") AC.resume().then(paintAudio, paintAudio); }
+  function paintAudio() { $("audioWarn").hidden = !AC || AC.state === "running" || !sounds.length; }
+  document.addEventListener("pointerdown", unlockAudio, true);
+  document.addEventListener("keydown", unlockAudio, true);
+  if (AC) AC.onstatechange = paintAudio;
+  $("audioWarn").onclick = unlockAudio;
+
+  function keyLabel(i) { return i < 10 ? String((i + 1) % 10) : i < 20 ? "⇧" + ((i - 9) % 10) : ""; }
+
+  function playSound(snd, forceRestart) {
+    if (!AC || !snd || !snd.buffer) return;
+    unlockAudio();
+    var a = act[snd.id];
+    if (a && !a.fading) {
+      if (snd.loop && !forceRestart) { fadeOut(snd.id, 1.2); return; }
+      stopNow(snd.id);
+    }
+    var src = AC.createBufferSource(), g = AC.createGain();
+    src.buffer = snd.buffer; src.loop = !!snd.loop; g.gain.value = snd.vol;
+    src.connect(g); g.connect(master); src.start();
+    var rec = { src: src, g: g, t0: AC.currentTime, dur: snd.buffer.duration, fading: false };
+    act[snd.id] = rec;
+    src.onended = function () { if (act[snd.id] === rec) delete act[snd.id]; paintPads(); };
+    var el = document.querySelector('.pad[data-id="' + snd.id + '"]');
+    if (el) { el.classList.add("hit"); setTimeout(function () { el.classList.remove("hit"); }, 120); }
+    paintPads(); tick();
+  }
+  function fadeOut(id, secs) {
+    var a = act[id]; if (!a) return;
+    var t = AC.currentTime;
+    a.g.gain.cancelScheduledValues(t); a.g.gain.setValueAtTime(a.g.gain.value, t); a.g.gain.linearRampToValueAtTime(0, t + secs);
+    try { a.src.stop(t + secs + 0.05); } catch (e) {}
+    a.fading = true; paintPads();
+  }
+  function stopNow(id) {
+    var a = act[id]; if (!a) return;
+    fadeOut(id, 0.03); delete act[id];
+  }
+  function stopAll() { Object.keys(act).forEach(stopNow); paintPads(); }
+  function fadeAll() { Object.keys(act).forEach(function (id) { fadeOut(id, 2); }); }
+  $("stopAll").onclick = stopAll; $("fadeAll").onclick = fadeAll;
+
+  var ticking = false;
+  function tick() {
+    if (ticking) return; ticking = true;
+    (function loop() {
+      var any = false;
+      sounds.forEach(function (s) {
+        var a = act[s.id], el = document.querySelector('.pad[data-id="' + s.id + '"] .prog');
+        if (!el) return;
+        if (a) { any = true; var el2 = (AC.currentTime - a.t0); el.style.width = (s.loop ? (el2 % a.dur) / a.dur : Math.min(1, el2 / a.dur)) * 100 + "%"; }
+        else el.style.width = "0";
+      });
+      if (any) requestAnimationFrame(loop); else ticking = false;
+    })();
+  }
+
+  function paintPads() {
+    document.querySelectorAll(".pad[data-id]").forEach(function (el) {
+      var a = act[el.dataset.id];
+      el.classList.toggle("on", !!a && !a.fading);
+      el.classList.toggle("fading", !!a && a.fading);
+    });
+  }
+  function renderPads() {
+    $("pads").innerHTML = sounds.map(function (s, i) {
+      return '<button type="button" class="pad" data-id="' + s.id + '"><b>' + (keyLabel(i) || "·") + '</b><span>' + esc(s.name) + '</span>' + (s.loop ? '<em>↻ loop</em>' : '') + '<i class="prog"></i></button>';
+    }).join("");
+    $("padsEmpty").hidden = !!sounds.length;
+    paintPads(); paintAudio();
+    // prompt-sound picker
+    var cur = store.get("bab.psound") || "";
+    psound.innerHTML = '<option value="">None</option>' + sounds.map(function (s) { return '<option value="' + s.id + '">' + esc(s.name) + '</option>'; }).join("");
+    psound.value = sounds.some(function (s) { return s.id === cur; }) ? cur : "";
+  }
+  $("pads").addEventListener("click", function (e) { var b = e.target.closest(".pad"); if (b) playSound(byId(b.dataset.id)); });
+  function byId(id) { for (var i = 0; i < sounds.length; i++) if (sounds[i].id === id) return sounds[i]; return null; }
+  function promptSound() { var s = byId(psound.value); if (s) playSound(s, true); }
+
+  // ---- IndexedDB storage for sound files ----
+  function db() {
+    return new Promise(function (res, rej) {
+      var r = indexedDB.open("build-a-bit", 1);
+      r.onupgradeneeded = function () { r.result.createObjectStore("sounds", { keyPath: "id" }); };
+      r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); };
+    });
+  }
+  function dbDo(mode, fn) {
+    return db().then(function (d) {
+      return new Promise(function (res, rej) {
+        var t = d.transaction("sounds", mode), req = fn(t.objectStore("sounds"));
+        t.oncomplete = function () { res(req && req.result); }; t.onerror = function () { rej(t.error); };
+      });
+    });
+  }
+  function rec(s) { return { id: s.id, name: s.name, vol: s.vol, loop: s.loop, order: s.order, blob: s.blob }; }
+  function saveSound(s) { return dbDo("readwrite", function (st) { return st.put(rec(s)); }); }
+  function decode(blob) {
+    return blob.arrayBuffer().then(function (buf) {
+      return new Promise(function (res, rej) { AC.decodeAudioData(buf, res, rej); });
+    });
+  }
+
+  function loadSounds() {
+    if (!window.indexedDB) return;
+    dbDo("readonly", function (st) { return st.getAll(); }).then(function (all) {
+      sounds = (all || []).sort(function (a, b) { return a.order - b.order; });
+      soundsLoaded = true;
+      renderPads(); renderSlist();
+      sounds.forEach(function (s) {
+        decode(s.blob).then(function (b) { s.buffer = b; renderSlist(); }).catch(function () { s.broken = true; renderSlist(); });
+      });
+    }).catch(function () {});
+  }
+
+  function addFiles(files) {
+    if (!AC) { alert("This browser can't play audio files."); return; }
+    try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+    var list = Array.prototype.slice.call(files).filter(function (f) { return /^audio\//.test(f.type) || /\.(mp3|wav|m4a|aac|ogg|oga|flac|aif|aiff)$/i.test(f.name); });
+    var failed = [];
+    list.reduce(function (p, f) {
+      return p.then(function () {
+        return decode(f).then(function (buf) {
+          var s = { id: "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: f.name.replace(/\.[^.]+$/, ""), vol: 0.9, loop: false, order: sounds.length, blob: f, buffer: buf };
+          sounds.push(s);
+          return saveSound(s);
+        }).catch(function () { failed.push(f.name); });
+      });
+    }, Promise.resolve()).then(function () {
+      renderPads(); renderSlist();
+      if (failed.length) alert("Couldn't read: " + failed.join(", "));
+    });
+  }
+  $("fileIn").addEventListener("change", function () { addFiles(this.files); this.value = ""; });
+  var drop = $("drop");
+  ["dragenter", "dragover"].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add("over"); }); });
+  ["dragleave", "drop"].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove("over"); }); });
+  drop.addEventListener("drop", function (e) { if (e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
+  // Dropping files anywhere on the Sounds tab works too.
+  $("tab-sounds").addEventListener("dragover", function (e) { e.preventDefault(); });
+  $("tab-sounds").addEventListener("drop", function (e) { e.preventDefault(); drop.classList.remove("over"); if (e.target.closest("#drop")) return; if (e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
+
+  function renderSlist() {
+    $("slistEmpty").hidden = !!sounds.length;
+    $("slist").innerHTML = sounds.map(function (s, i) {
+      var k = keyLabel(i);
+      return '<li data-id="' + s.id + '">' +
+        '<span class="key' + (k ? "" : " none") + '">' + (k || "no key") + '</span>' +
+        '<div style="display:grid;gap:4px;min-width:0"><input type="text" data-f="name" value="' + esc(s.name) + '" aria-label="Sound name">' +
+        '<span class="dur">' + (s.broken ? '<span style="color:#ff8a98">Couldn’t read this file</span>' : s.buffer ? BAB.fmtTime(s.buffer.duration) + (s.buffer.duration < 10 ? " (" + s.buffer.duration.toFixed(1) + "s)" : "") : "Loading…") + '</span></div>' +
+        '<label class="vol">Vol <input type="range" data-f="vol" min="0" max="1.5" step="0.05" value="' + s.vol + '"></label>' +
+        '<label class="check" style="font-size:13px"><input type="checkbox" data-f="loop"' + (s.loop ? " checked" : "") + '> Loop</label>' +
+        '<button class="btn mini" type="button" data-a="play">▶ Test</button>' +
+        '<div class="row" style="gap:4px;flex-wrap:nowrap"><button class="btn mini" type="button" data-a="up" aria-label="Move up"' + (i === 0 ? " disabled" : "") + '>↑</button><button class="btn mini" type="button" data-a="down" aria-label="Move down"' + (i === sounds.length - 1 ? " disabled" : "") + '>↓</button><button class="btn mini danger" type="button" data-a="del">Delete</button></div>' +
+        '</li>';
+    }).join("");
+  }
+  $("slist").addEventListener("input", function (e) {
+    var li = e.target.closest("li[data-id]"), f = e.target.dataset.f; if (!li || !f) return;
+    var s = byId(li.dataset.id); if (!s) return;
+    if (f === "name") s.name = e.target.value;
+    if (f === "vol") { s.vol = +e.target.value; if (act[s.id] && !act[s.id].fading) act[s.id].g.gain.setTargetAtTime(s.vol, AC.currentTime, 0.02); }
+    if (f === "loop") { s.loop = e.target.checked; if (act[s.id]) act[s.id].src.loop = s.loop; }
+    saveSound(s);
+    clearTimeout(renderSlist._t); renderSlist._t = setTimeout(renderPads, 250);
+  });
+  $("slist").addEventListener("change", function (e) { if (e.target.type === "range" || e.target.type === "checkbox") e.target.blur(); });
+  $("slist").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-a]"); if (!b) return;
+    var li = b.closest("li[data-id]"), s = byId(li.dataset.id), i = sounds.indexOf(s);
+    if (b.dataset.a === "play") playSound(s);
+    else if (b.dataset.a === "up" || b.dataset.a === "down") {
+      var j = b.dataset.a === "up" ? i - 1 : i + 1; if (j < 0 || j >= sounds.length) return;
+      sounds[i] = sounds[j]; sounds[j] = s;
+      sounds.forEach(function (x, k) { x.order = k; saveSound(x); });
+      renderSlist(); renderPads();
+    } else if (b.dataset.a === "del") {
+      if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Sure?"; setTimeout(function () { if (b.isConnected) { delete b.dataset.armed; b.textContent = "Delete"; } }, 3000); return; }
+      stopNow(s.id);
+      sounds.splice(i, 1);
+      dbDo("readwrite", function (st) { return st.delete(s.id); });
+      sounds.forEach(function (x, k) { if (x.order !== k) { x.order = k; saveSound(x); } });
+      renderSlist(); renderPads();
+    }
+  });
+
+  // ================= Keys =================
+  var NEXT = ["ArrowRight", " ", "PageDown", "Enter", "ArrowDown"], PREV = ["ArrowLeft", "PageUp", "Backspace", "ArrowUp"];
+  function handleKey(k) {
+    var key = k.key, code = k.code || "";
+    if (NEXT.indexOf(key) !== -1) { go(1); return true; }
+    if (PREV.indexOf(key) !== -1) { go(-1); return true; }
+    if (key === "b" || key === "B" || key === ".") { toggleDark(); return true; }
+    if (key === "Home") { jump(0); return true; }
+    if (key === "End") { jump(slides.length - 1); return true; }
+    if (key === "p" || key === "P" || key === "k" || key === "K") { post({ type: "vcmd", cmd: "toggle" }); return true; }
+    if (key === "r" || key === "R") { post({ type: "vcmd", cmd: "restart" }); return true; }
+    if (key === "x" || key === "X") { if (k.shift) fadeAll(); else stopAll(); return true; }
+    var m = code.match(/^(?:Digit|Numpad)(\d)$/), n = -1;
+    if (m) n = (+m[1] + 9) % 10;
+    else if ("1234567890".indexOf(key) !== -1 && key.length === 1) n = "1234567890".indexOf(key);
+    if (n !== -1) { if (k.shift) n += 10; playSound(sounds[n]); return true; }
+    return false;
+  }
+  function typing(el) {
+    var t = (el && el.tagName || "").toLowerCase();
+    return t === "textarea" || t === "select" || (t === "input" && /^(text|search|number|email|url)$/.test(el.type)) || (el && el.isContentEditable);
+  }
+  document.addEventListener("keydown", function (e) {
+    if (typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target.tagName === "INPUT" && e.target.type === "range" && /Arrow|Page|Home|End/.test(e.key)) return;
+    if (handleKey({ key: e.key, code: e.code, shift: e.shiftKey })) e.preventDefault();
+  });
+  // Don't let a clicked button keep focus, or Space/Enter from a clicker would press it again.
+  document.addEventListener("click", function (e) { var b = e.target.closest("button"); if (b && e.detail) b.blur(); });
+
+  // ================= Boot =================
+  rebuild();
+  setTab(store.get("bab.tab") || "prompts");
+  loadSounds();
+  paintStatus();
+})();
+</script>
+</body>
+</html>

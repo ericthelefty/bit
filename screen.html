@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build a Bit · Audience screen</title>
+<link rel="icon" href="favicon.png">
+<link rel="preload" as="image" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Archivo:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --house: #14121c; --line: #34304a; --chalk: #f4efe4; --dim: #a59fb8; --bulb: #ffbe3d; --curtain: #c2364a;
+  --display: "Big Shoulders Display", "Impact", "Arial Narrow", sans-serif;
+  --body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--house); color: var(--chalk); font-family: var(--body); overflow: hidden; user-select: none; cursor: none; }
+body.awake { cursor: default; }
+.bulbs { position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 45%, rgba(255,190,61,.10), transparent 70%),
+    radial-gradient(ellipse 120% 80% at 50% 120%, rgba(194,54,74,.28), transparent 60%); }
+.frame { position: absolute; inset: 3.2vmin; border: .5vmin solid rgba(255,190,61,.55); border-radius: 2vmin;
+  box-shadow: inset 0 0 0 .9vmin var(--house), inset 0 0 0 1.2vmin rgba(255,190,61,.25); pointer-events: none; }
+.stage { position: absolute; inset: 8vmin 9vmin; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 3vmin; }
+.tag { font-family: var(--display); font-weight: 900; text-transform: uppercase; letter-spacing: .12em; color: var(--bulb); font-size: 4.4vmin; line-height: 1; display: flex; align-items: center; gap: 2vmin; }
+.tag::before, .tag::after { content: ""; width: 7vmin; height: .5vmin; background: currentColor; opacity: .6; }
+.prompt { font-family: var(--body); font-weight: 800; line-height: 1.12; text-wrap: balance; max-width: 100%; letter-spacing: -.005em; }
+.players { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--chalk); background: var(--curtain); padding: .4em 1.1em .35em; border-radius: 99px; font-size: 3.8vmin; line-height: 1; }
+.big-title { font-family: var(--display); font-weight: 900; text-transform: uppercase; line-height: .9; font-size: 16vmin; text-wrap: balance; text-shadow: 0 0 6vmin rgba(255,190,61,.35); }
+.big-num { font-family: var(--display); font-weight: 900; font-size: 42vmin; line-height: .8; color: var(--bulb); text-shadow: 0 0 8vmin rgba(255,190,61,.4); font-variant-numeric: tabular-nums; }
+.sub { color: var(--dim); font-size: 3.2vmin; font-weight: 600; }
+.logo { display: block; width: min(80vw, 150vmin); max-height: 42vh; object-fit: contain; filter: drop-shadow(0 1.2vmin 2.4vmin rgba(0,0,0,.55)); }
+.logo.small { width: min(46vw, 80vmin); max-height: 22vh; }
+.logo.enter { animation: logo-in .7s cubic-bezier(.2,.9,.25,1.15) both; }
+@keyframes logo-in { from { opacity: 0; transform: rotate(-2deg) scale(.9); } to { opacity: 1; transform: none; } }
+.vbadge { display: inline-flex; align-items: center; gap: 1.4vmin; font-family: var(--display); font-weight: 900; text-transform: uppercase; letter-spacing: .1em; font-size: 4vmin; color: var(--house); background: var(--bulb); padding: .45em 1em .4em; border-radius: 1.2vmin; }
+.vbadge::before { content: ""; border-left: 2.6vmin solid currentColor; border-top: 1.6vmin solid transparent; border-bottom: 1.6vmin solid transparent; }
+.enter { animation: pop .45s cubic-bezier(.2,.9,.25,1.15) both; }
+@keyframes pop { from { opacity: 0; transform: translateY(3vmin) scale(.96); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .enter { animation: none; } }
+.progress { position: absolute; left: 50%; bottom: 4.6vmin; transform: translateX(-50%); display: flex; gap: .9vmin; }
+.progress i { width: 1.3vmin; height: 1.3vmin; border-radius: 50%; background: rgba(244,239,228,.18); }
+.progress i.done { background: rgba(255,190,61,.55); }
+.progress i.now { background: var(--bulb); box-shadow: 0 0 1.6vmin var(--bulb); }
+
+/* Video layer: full-bleed black, YouTube player on top. */
+#vid { position: absolute; inset: 0; background: #000; display: none; }
+#vid.on { display: block; }
+#vid .yt, #vid iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; pointer-events: none; }
+#vid.done .yt { opacity: 0; transition: opacity .6s; }
+#thumb { position: absolute; inset: 0; background: #000 center / cover no-repeat; display: none; }
+#thumb.on { display: block; }
+#thumb::after { content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-40%, -50%); border-left: 12vmin solid rgba(255,190,61,.9); border-top: 7vmin solid transparent; border-bottom: 7vmin solid transparent; filter: drop-shadow(0 0 3vmin rgba(0,0,0,.6)); }
+
+#blackout { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .35s; z-index: 5; }
+body.dark #blackout { opacity: 1; }
+body.preview.dark #blackout { opacity: .82; }
+body.preview.dark #blackout::after { content: "BLACKOUT"; position: absolute; inset: 0; display: grid; place-items: center; font: 900 9vmin var(--display); letter-spacing: .2em; color: rgba(244,239,228,.5); }
+
+/* Start overlay (audience window only) */
+#gate { position: absolute; inset: 0; z-index: 10; display: grid; place-items: center; background: rgba(10,9,14,.92); cursor: pointer; text-align: center; padding: 6vmin; }
+#gate[hidden] { display: none; }
+#gate h1 { margin: 0 0 4vmin; display: flex; justify-content: center; }
+#gate h1 img { width: min(60vw, 110vmin); }
+#gate p { font-size: 2.6vmin; color: var(--dim); max-width: 60ch; margin: 0 auto 1.6vmin; line-height: 1.45; }
+#gate b { color: var(--chalk); }
+#lost { position: absolute; right: 2vmin; bottom: 2vmin; z-index: 6; font-size: 1.8vmin; color: var(--dim); background: rgba(31,28,43,.9); border: 1px solid var(--line); padding: .6em 1em; border-radius: 8px; display: none; }
+body.awake #lost.on { display: block; }
+</style>
+</head>
+<body>
+<div class="bulbs"></div>
+<div class="frame"></div>
+<div class="stage" id="stage"></div>
+<div class="progress" id="dots"></div>
+<div id="thumb"></div>
+<div id="vid"><div class="yt"><div id="yt"></div></div></div>
+<div id="blackout"></div>
+<div id="lost">Waiting for the console…</div>
+<div id="gate" hidden>
+  <div>
+    <h1><img src="logo.png" alt="Build a Bit"></h1>
+    <p>This is the <b>audience screen</b>. If it isn't on the projector yet, drag this window there.</p>
+    <p><b>Click anywhere</b> to go full screen. That click also lets YouTube clips play with sound.</p>
+    <p>Your keyboard and clicker still drive the show from either window.</p>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+(function () {
+  var qs = new URLSearchParams(location.search);
+  var role = qs.get("preview") || "main";          // "main" | "cur" | "next"
+  var isMain = role === "main";
+  if (!isMain) document.body.classList.add("preview");
+
+  var $ = function (id) { return document.getElementById(id); };
+  var stage = $("stage"), esc = BAB.esc;
+  var bc = new BroadcastChannel(BAB.CHANNEL);
+  var state = null, lastKey = null, lastSeen = 0;
+
+  function post(m) { bc.postMessage(m); }
+
+  function fit(el) {
+    var box = stage, lo = 16, hi = Math.min(window.innerWidth, window.innerHeight) * 0.16, best = lo;
+    for (var k = 0; k < 14; k++) {
+      var mid = (lo + hi) / 2; el.style.fontSize = mid + "px";
+      if (box.scrollHeight <= box.clientHeight && box.scrollWidth <= box.clientWidth && el.scrollWidth <= el.clientWidth + 1) { best = mid; lo = mid; } else hi = mid;
+    }
+    el.style.fontSize = best + "px";
+  }
+
+  function slideHtml(s, st) {
+    var sub = st.name && !/^build a bit$/i.test(st.name) ? st.name : "";
+    var logo = '<img class="logo enter" src="logo.png" alt="Build a Bit">';
+    if (!s) return '<div class="sub">End of the show</div>';
+    if (s.t === "title") return logo + '<div class="sub enter">' + (sub ? esc(sub) + ' · ' : '') + st.total + (st.total === 1 ? ' prompt' : ' prompts') + ' tonight</div>';
+    if (s.t === "sec") return '<div class="tag enter">Next up</div><div class="big-title enter">' + esc(s.sec) + '</div>';
+    if (s.t === "num") return '<div class="tag enter">Prompt</div><div class="big-num enter">' + (s.i + 1) + '</div>';
+    if (s.t === "prompt") {
+      var h = '<div class="tag enter">Prompt ' + (s.i + 1) + '</div>';
+      if (s.video) h += '<div class="vbadge enter">Video prompt</div>';
+      if (s.text) h += '<div class="prompt enter" id="ptext">' + esc(s.text) + '</div>';
+      if (s.who || s.psec) h += '<div class="players enter">' + esc(s.who || s.psec) + '</div>';
+      return h;
+    }
+    if (s.t === "video") return "";
+    return '<div class="big-title enter">Thanks for coming!</div><img class="logo small enter" src="logo.png" alt="Build a Bit">' + (sub ? '<div class="sub enter">' + esc(sub) + '</div>' : '');
+  }
+
+  function render(st) {
+    state = st;
+    var s = role === "next" ? st.next : st.cur;
+    var key = JSON.stringify([s, st.name, st.total]);
+    if (key !== lastKey) {
+      lastKey = key;
+      stage.innerHTML = slideHtml(s, st);
+      var pt = $("ptext"); if (pt) fit(pt);
+    }
+    document.body.classList.toggle("dark", role !== "next" && !!st.dark);
+
+    var dots = $("dots"), show = st.dots && st.total && st.total <= 40 && !(s && s.t === "video");
+    dots.style.display = show ? "flex" : "none";
+    if (show) {
+      var cur = role === "next" ? st.nextProg : st.prog, h = "";
+      for (var i = 0; i < st.total; i++) h += '<i class="' + (i < cur ? "done" : i === cur ? "now" : "") + '"></i>';
+      dots.innerHTML = h;
+    }
+
+    var vs = s && s.t === "video" ? s.video : null;
+    if (isMain) videoApply(s);
+    else {
+      var th = $("thumb");
+      th.classList.toggle("on", !!vs);
+      if (vs) th.style.backgroundImage = "url(https://i.ytimg.com/vi/" + vs.id + "/hqdefault.jpg)";
+    }
+  }
+
+  window.addEventListener("resize", function () { var pt = $("ptext"); if (pt) fit(pt); });
+  document.fonts && document.fonts.ready.then(function () { var pt = $("ptext"); if (pt) fit(pt); });
+
+  // ---------------- YouTube (audience window only) ----------------
+  var player = null, playerReady = false, apiAsked = false, apiFailed = false;
+  var loadedKey = "", loadedVid = null, onVideoSlide = false, wantPlay = false, ended = false, lastErr = "", wantSince = 0;
+
+  function loadApi() {
+    if (apiAsked) return; apiAsked = true;
+    var s = document.createElement("script"); s.src = "https://www.youtube.com/iframe_api";
+    s.onerror = function () { apiFailed = true; vstat(); };
+    document.head.appendChild(s);
+    setTimeout(function () { if (!playerReady) { apiFailed = true; vstat(); } }, 15000);
+  }
+  window.onYouTubeIframeAPIReady = function () {
+    player = new YT.Player("yt", {
+      width: "100%", height: "100%",
+      playerVars: { controls: 0, rel: 0, playsinline: 1, iv_load_policy: 3, disablekb: 1, fs: 0, modestbranding: 1, cc_load_policy: 0 },
+      events: {
+        onReady: function () { playerReady = true; apiFailed = false; if (state) videoApply(state.cur); },
+        onStateChange: function (e) {
+          if (e.data === 0) { ended = true; wantPlay = false; $("vid").classList.add("done"); }
+          if (e.data === 1) { ended = false; lastErr = ""; $("vid").classList.remove("done"); }
+          vstat();
+        },
+        onError: function (e) {
+          lastErr = ({ 2: "That link has a bad video ID.", 5: "This video can't play in the browser player.", 100: "Video not found (removed or private).", 101: "The owner doesn't allow this video to play on other sites.", 150: "The owner doesn't allow this video to play on other sites.", 153: "YouTube refused to play this embed." })[e.data] || ("YouTube error " + e.data);
+          vstat();
+        }
+      }
+    });
+  };
+
+  function params(v) { var o = { videoId: v.id }; if (v.start) o.startSeconds = v.start; if (v.end) o.endSeconds = v.end; return o; }
+
+  function videoApply(s) {
+    var v = s && s.video ? s.video : null;
+    if (v) loadApi();
+    var layer = $("vid");
+    var nowVideo = !!(s && s.t === "video");
+    layer.classList.toggle("on", nowVideo);
+    if (!playerReady) { onVideoSlide = nowVideo; return; }
+    var k = BAB.vkey(v);
+    if (nowVideo) {
+      if (!onVideoSlide || loadedKey !== k) {
+        // Entering the clip: start it from the top.
+        ended = false; lastErr = ""; layer.classList.remove("done");
+        player.loadVideoById(params(v)); loadedKey = k; loadedVid = v; wantPlay = true; wantSince = Date.now();
+      }
+    } else {
+      if (v && loadedKey !== k) { player.cueVideoById(params(v)); loadedKey = k; loadedVid = v; lastErr = ""; }
+      if (onVideoSlide || (player.getPlayerState && player.getPlayerState() === 1)) player.pauseVideo();
+      wantPlay = false;
+    }
+    onVideoSlide = nowVideo;
+    vstat();
+  }
+
+  function vcmd(m) {
+    if (!playerReady || !loadedVid) return;
+    if (m.cmd === "toggle") {
+      if (!onVideoSlide) return;
+      var st = player.getPlayerState();
+      if (st === 1 || st === 3) { player.pauseVideo(); wantPlay = false; }
+      else if (ended) { restart(); }
+      else { player.playVideo(); wantPlay = true; wantSince = Date.now(); }
+    } else if (m.cmd === "restart") {
+      if (onVideoSlide) restart();
+    } else if (m.cmd === "vol") {
+      player.setVolume(Math.round(m.v * 100)); player.unMute();
+    }
+    vstat();
+  }
+  function restart() { ended = false; lastErr = ""; $("vid").classList.remove("done"); player.loadVideoById(params(loadedVid)); wantPlay = true; wantSince = Date.now(); }
+
+  function vstat() {
+    if (!isMain) return;
+    var m = { type: "vstat", key: loadedKey, onSlide: onVideoSlide };
+    if (apiFailed && !playerReady) { m.err = "YouTube didn't load. Check the internet connection on this Mac."; post(m); return; }
+    if (!playerReady) { m.state = "loading"; post(m); return; }
+    var ps = player.getPlayerState ? player.getPlayerState() : -1;
+    m.state = ({ "-1": "unstarted", 0: "ended", 1: "playing", 2: "paused", 3: "buffering", 5: "ready" })[ps] || "unstarted";
+    if (ended) m.state = "ended";
+    try { m.t = player.getCurrentTime(); m.dur = player.getDuration(); } catch (e) {}
+    if (loadedVid && loadedVid.end && m.t >= loadedVid.end - 0.15 && ps === 1) { player.pauseVideo(); ended = true; $("vid").classList.add("done"); m.state = "ended"; }
+    if (lastErr) m.err = lastErr;
+    else if (wantPlay && onVideoSlide && (ps === -1 || ps === 5) && Date.now() - wantSince > 3000)
+      m.err = "Chrome blocked the clip from starting. Click the projector window once, then press P.";
+    post(m);
+  }
+  if (isMain) setInterval(function () { if (playerReady && (onVideoSlide || wantPlay)) vstat(); }, 500);
+
+  // ---------------- Messages ----------------
+  bc.onmessage = function (e) {
+    var m = e.data || {};
+    if (m.type === "state") { lastSeen = Date.now(); render(m); }
+    else if (m.type === "ping") { lastSeen = Date.now(); if (isMain) post({ type: "pong" }); }
+    else if (m.type === "vcmd" && isMain) vcmd(m);
+    else if (m.type === "vquery" && isMain) vstat();
+  };
+  post({ type: "hello", role: role });
+
+  if (isMain) {
+    // Waiting-for-console note
+    setInterval(function () { $("lost").classList.toggle("on", Date.now() - lastSeen > 6000); }, 1000);
+
+    // Fullscreen gate
+    var gate = $("gate");
+    gate.hidden = !!document.fullscreenElement;
+    function goFs() {
+      try { var r = document.documentElement.requestFullscreen(); if (r && r.catch) r.catch(function () {}); } catch (e) {}
+    }
+    gate.addEventListener("click", function () { gate.hidden = true; goFs(); });
+    document.addEventListener("fullscreenchange", function () { if (document.fullscreenElement) gate.hidden = true; });
+    document.addEventListener("dblclick", function () { if (!document.fullscreenElement) goFs(); });
+
+    // Keys pressed while this window has focus go to the console.
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "f" || e.key === "F") { if (document.fullscreenElement) document.exitFullscreen(); else goFs(); return; }
+      if (e.metaKey || e.ctrlKey || e.altKey || e.key === "Escape") return;
+      if ([" ", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "PageUp", "PageDown", "Backspace", "Home", "End", "Enter"].indexOf(e.key) !== -1) e.preventDefault();
+      post({ type: "key", key: e.key, code: e.code, shift: e.shiftKey });
+    });
+
+    var sleepT;
+    function wake() { document.body.classList.add("awake"); clearTimeout(sleepT); sleepT = setTimeout(function () { document.body.classList.remove("awake"); }, 2200); }
+    document.addEventListener("mousemove", wake);
+    window.addEventListener("beforeunload", function () { post({ type: "bye" }); });
+  }
+})();
+</script>
+</body>
+</html>
