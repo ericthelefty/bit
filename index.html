@@ -92,7 +92,9 @@ ol.list .n { font-family: var(--display); font-weight: 900; font-size: 16px; col
 ol.list .p { display: block; color: var(--dim); font-size: 12px; margin-top: 2px; }
 ol.list .v { display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: .06em; color: #1a1408; background: var(--bulb); border-radius: 3px; padding: 1px 5px; margin-right: 5px; vertical-align: 1px; }
 ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px; }
-.sechd { font-family: var(--display); font-weight: 900; text-transform: uppercase; letter-spacing: .06em; font-size: 15px; margin: 8px 0 1px; cursor: default; }
+.sechd { font-family: var(--display); font-weight: 900; text-transform: uppercase; letter-spacing: .06em; font-size: 15px; margin: 8px 0 1px; cursor: pointer; padding: 3px 6px; border-radius: 5px; }
+.sechd:hover { background: var(--house); color: var(--bulb); }
+.sechd.now { background: #2a2538; box-shadow: inset 3px 0 0 var(--bulb); }
 .mid { display: grid; gap: 14px; }
 .previews { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr); gap: 14px; align-items: end; }
 .pvbox { display: grid; gap: 6px; }
@@ -386,7 +388,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     var last = null;
     ol.innerHTML = prompts.map(function (p, i) {
       var h = "";
-      if (p.sec !== last) { last = p.sec; if (p.sec) h = '<div class="sechd">' + (p.secKind === "minigame" ? '<span class="v" style="background:var(--curtain);color:var(--chalk)">MINIGAME</span>' : "") + esc(p.sec) + '</div>'; }
+      if (p.sec !== last) { last = p.sec; if (p.sec) h = '<div class="sechd" data-first="' + i + '" tabindex="0" title="Show this section\u2019s title card">' + (p.secKind === "minigame" ? '<span class="v" style="background:var(--curtain);color:var(--chalk)">MINIGAME</span>' : "") + esc(p.sec) + '</div>'; }
       return h + '<li data-i="' + i + '" class="' + (p.bad ? "bad" : "") + '"><span class="n">' + (i + 1) + '</span><span>' +
         (p.video ? '<span class="v">VIDEO</span>' : "") + esc(p.text || (p.video ? "(no caption)" : "")) +
         (p.who ? '<span class="p">' + esc(p.who) + '</span>' : "") +
@@ -403,7 +405,9 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     return -1;
   }
   function markList() {
-    var c = curPromptIndex();
+    var c = curPromptIndex(), cs = slides[idx], secFirst = -1;
+    if (cs && cs.t === "sec") for (var k = idx; k < slides.length; k++) if (slides[k].i != null) { secFirst = slides[k].i; break; }
+    document.querySelectorAll("#list .sechd[data-first]").forEach(function (h) { h.classList.toggle("now", +h.dataset.first === secFirst); });
     document.querySelectorAll("#list li[data-i]").forEach(function (li) {
       var i = +li.dataset.i;
       li.classList.toggle("now", i === c);
@@ -411,7 +415,16 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     });
   }
   function scrollNow() { var li = document.querySelector("#list li.now"); if (li) li.scrollIntoView({ block: "nearest" }); }
+  function jumpToSection(first) {
+    for (var k = 0; k < slides.length; k++) if (slides[k].i === first) { jump(k > 0 && slides[k - 1].t === "sec" ? k - 1 : k); return; }
+  }
+  $("list").addEventListener("keydown", function (e) {
+    var h = e.target.closest(".sechd[data-first]");
+    if (h && e.key === "Enter") { e.stopPropagation(); e.preventDefault(); jumpToSection(+h.dataset.first); }
+  });
   $("list").addEventListener("click", function (e) {
+    var hd = e.target.closest(".sechd[data-first]");
+    if (hd) { jumpToSection(+hd.dataset.first); return; }
     var li = e.target.closest("li[data-i]"); if (!li) return;
     var i = +li.dataset.i;
     for (var k = 0; k < slides.length; k++) if (slides[k].i === i) { jump(k); if (slides[k].t === "prompt") promptSound(); break; }
