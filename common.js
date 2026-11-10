@@ -12,6 +12,15 @@ var BAB = (function () {
     return /^##\s*/.test(l) || /^for (one|two|three|four|five|\d+|all|everyone)\b.*performers?:?$/i.test(l) || /^mini-?game\s*[:\-–—]/i.test(l);
   }
   function sectionName(l) { return l.replace(/^##\s*/, "").replace(/:$/, "").trim(); }
+  // Title art for minigames, matched on the minigame's name. Add a row per new minigame.
+  var MINIGAME_ART = [
+    { match: /d[’'`]?\s*improv/i, src: "art/its-dimprov.png", alt: "It's D'improv" }
+  ];
+  function artFor(name) {
+    for (var i = 0; i < MINIGAME_ART.length; i++) if (MINIGAME_ART[i].match.test(name)) return MINIGAME_ART[i];
+    return null;
+  }
+
   // "Minigame: Big Title (Subtitle)" -> { name: "Big Title", sub: "Subtitle", kind: "minigame" }
   function sectionInfo(l) {
     var name = sectionName(l), kind = "", sub = "";
@@ -19,7 +28,8 @@ var BAB = (function () {
     if (m) { kind = "minigame"; name = m[1].trim(); }
     var ps = name.match(/^(.+?)\s*\(([^()]+)\)$/);
     if (ps) { name = ps[1].trim(); sub = ps[2].trim(); }
-    return { name: name, sub: sub, kind: kind };
+    var art = kind ? artFor(name) : null;
+    return { name: name, sub: sub, kind: kind, art: art ? art.src : "", alt: art ? art.alt : "" };
   }
 
   // "90", "1:30", "1:02:03", "1m30s", "90s" -> seconds
@@ -83,7 +93,7 @@ var BAB = (function () {
       var i = l.indexOf("|");
       var main = i === -1 ? l : l.slice(0, i).trim(), who = i === -1 ? "" : l.slice(i + 1).trim();
       main = main.replace(/^(["“”])["“”]+/, "$1");           // tidy a doubled opening quote
-      var p = { text: main, who: who, sec: sec.name, secSub: sec.sub, secKind: sec.kind, video: null, dirs: [] };
+      var p = { text: main, who: who, sec: sec.name, secSub: sec.sub, secKind: sec.kind, secArt: sec.art, video: null, dirs: [] };
       var vm = main.match(/^video\s*:\s*(.+)$/i);
       if (vm) {
         var pv = parseVideo(vm[1]);
@@ -103,7 +113,7 @@ var BAB = (function () {
   function buildSlides(prompts, opts) {
     var slides = [{ t: "title" }], last = null;
     prompts.forEach(function (p, i) {
-      if (p.sec && p.sec !== last && opts.showSec) slides.push({ t: "sec", sec: p.sec, sub: p.secSub, kind: p.secKind });
+      if (p.sec && p.sec !== last && opts.showSec) slides.push({ t: "sec", sec: p.sec, sub: p.secSub, kind: p.secKind, art: p.secArt });
       last = p.sec;
       if (opts.numCard) slides.push({ t: "num", i: i });
       slides.push({ t: "prompt", i: i });
@@ -119,7 +129,7 @@ var BAB = (function () {
   function slideView(s, prompts) {
     if (!s) return null;
     var v = { t: s.t };
-    if (s.sec) { v.sec = s.sec; v.sub = s.sub; v.kind = s.kind; }
+    if (s.sec) { v.sec = s.sec; v.sub = s.sub; v.kind = s.kind; v.art = s.art; }
     if (s.i != null) {
       var p = prompts[s.i];
       v.i = s.i; v.text = p.text; v.who = p.who; v.psec = p.sec; v.video = p.video;
