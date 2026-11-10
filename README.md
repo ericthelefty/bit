@@ -20,6 +20,7 @@ Hosted on Vercel from this repo (framework preset **Other**, no build command). 
 4. Open the Vercel URL in Chrome, then click **Open audience screen**. If Chrome asks about managing windows, choose Allow so the window opens on the projector.
 5. Click the audience window once to go full screen. That click also lets YouTube play with sound.
 6. Run the show from the console. Keys and clickers work from either window.
+7. At the end, press **C** (or **Roll credits**) to roll the credits from the Credits tab. P pauses and R restarts them.
 
 Sounds you add are stored in this browser (IndexedDB) on this Mac.
 Prompts and settings are stored in localStorage.

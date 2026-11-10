@@ -92,6 +92,7 @@ var BAB = (function () {
       if (p.video) slides.push({ t: "video", i: i });
     });
     slides.push({ t: "end" });
+    if (opts.credits) slides.push({ t: "credits" });
     return slides;
   }
 
@@ -107,10 +108,30 @@ var BAB = (function () {
     return v;
   }
 
+  // Credits: "## Heading", "Role | Name" rows, plain lines for names, blank line for a gap.
+  function parseCredits(text) {
+    var out = [], gap = false;
+    String(text || "").split(/\r?\n/).forEach(function (raw) {
+      var l = raw.trim();
+      if (!l) { if (out.length) gap = true; return; }
+      if (/^#\s/.test(l) || (l.charAt(0) === "#" && l.charAt(1) !== "#")) return; // notes
+      var item;
+      if (/^##\s*/.test(l)) item = { k: "h", text: l.replace(/^##\s*/, "") };
+      else {
+        l = l.replace(/^([*\-•–])\s+/, "");
+        var i = l.indexOf("|");
+        item = i === -1 ? { k: "name", text: l } : { k: "row", role: l.slice(0, i).trim(), name: l.slice(i + 1).trim() };
+      }
+      if (gap) { item.gap = true; gap = false; }
+      out.push(item);
+    });
+    return out;
+  }
+
   function vkey(v) { return v ? v.id + "|" + (v.start || 0) + "|" + (v.end || "") : ""; }
 
   return {
     CHANNEL: CHANNEL, esc: esc, parse: parse, parseTime: parseTime, fmtTime: fmtTime,
-    ytParse: ytParse, buildSlides: buildSlides, slideView: slideView, vkey: vkey
+    ytParse: ytParse, parseCredits: parseCredits, buildSlides: buildSlides, slideView: slideView, vkey: vkey
   };
 })();

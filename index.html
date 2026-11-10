@@ -141,6 +141,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
   <nav class="tabs" role="tablist">
     <button role="tab" data-tab="run" aria-selected="false">Run show</button>
     <button role="tab" data-tab="prompts" aria-selected="false">Prompts</button>
+    <button role="tab" data-tab="credits" aria-selected="false">Credits</button>
     <button role="tab" data-tab="sounds" aria-selected="false">Sounds</button>
   </nav>
   <div class="screenctl">
@@ -176,6 +177,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
           <button class="btn go big grow" type="button" data-act="next">Next →</button>
           <button class="btn big" type="button" data-act="dark" id="darkBtn">Blackout</button>
           <button class="btn" type="button" data-act="end">End card</button>
+          <button class="btn" type="button" data-act="credits" id="credBtn">Roll credits <kbd>C</kbd></button>
         </div>
 
         <div class="card vpanel" id="vpanel" hidden>
@@ -209,6 +211,8 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
             <div><kbd>⇧</kbd>+<kbd>1</kbd>–<kbd>0</kbd> Sounds 11–20</div>
             <div><kbd>X</kbd> Stop all sounds</div>
             <div><kbd>⇧</kbd>+<kbd>X</kbd> Fade out all sounds</div>
+            <div><kbd>C</kbd> Roll credits</div>
+            <div><kbd>P</kbd> / <kbd>R</kbd> Pause / restart credits (while rolling)</div>
             <div><kbd>F</kbd> Full screen (audience window)</div>
           </div>
         </div>
@@ -263,6 +267,30 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     </div>
   </section>
 
+  <!-- ================= CREDITS ================= -->
+  <section id="tab-credits" role="tabpanel" hidden>
+    <div class="ptab">
+      <div class="card">
+        <label class="lbl" for="credText">Credits, one line each</label>
+        <textarea id="credText" spellcheck="true" placeholder="## Announcer&#10;Eric Bourne&#10;&#10;## Performers&#10;Dana Smith&#10;Luis Ortega&#10;&#10;## Behind the scenes&#10;Sound | Name Here&#10;Projector | Name Here&#10;&#10;## Special thanks&#10;Everyone who came out tonight"></textarea>
+      </div>
+      <div class="card">
+        <span class="lbl">How it works</span>
+        <p class="hint"><code>## Performers</code> makes a heading. A plain line is a name. <code>Sound | Dana</code> puts a role and a name side by side. A blank line adds extra space. Lines starting with a single <code>#</code> are notes that never show.</p>
+        <p class="hint">The credits come after the end card. Press <kbd>C</kbd> or <b style="color:var(--chalk)">Roll credits</b> on the Run show tab to start them from anywhere. They scroll up and stop with the logo in the middle of the screen. While they roll, <kbd>P</kbd> pauses and <kbd>R</kbd> starts them over.</p>
+        <label class="lbl" for="credSpeed" style="margin-top:6px">Scroll speed</label>
+        <select id="credSpeed">
+          <option value="5">Slow</option>
+          <option value="8">Medium</option>
+          <option value="12">Fast</option>
+        </select>
+        <label class="lbl" for="credMusic" style="margin-top:6px">Music while the credits roll</label>
+        <select id="credMusic"><option value="">None</option></select>
+        <p class="hint">Starts when the credits start and fades out when you leave them. Pick one of your sounds from the Sounds tab (turn on Loop there if it's shorter than the credits).</p>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= SOUNDS ================= -->
   <section id="tab-sounds" role="tabpanel" hidden>
     <div class="stab">
@@ -298,7 +326,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
   // ================= Tabs =================
   function setTab(t) {
     document.querySelectorAll(".tabs button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.tab === t ? "true" : "false"); });
-    ["run", "prompts", "sounds"].forEach(function (n) { $("tab-" + n).hidden = n !== t; });
+    ["run", "prompts", "credits", "sounds"].forEach(function (n) { $("tab-" + n).hidden = n !== t; });
     store.set("bab.tab", t);
     if (t === "run") { sizePreviews(); scrollNow(); }
   }
@@ -313,25 +341,32 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
   showSec.checked = store.get("bab.sec") !== "0";
   showDots.checked = store.get("bab.dots") !== "0";
 
+  var credText = $("credText"), credSpeed = $("credSpeed"), credMusic = $("credMusic");
+  credText.value = store.get("bab.credits") || "";
+  credSpeed.value = store.get("bab.credSpeed") || "8";
   var prompts = [], slides = [], idx = +(store.get("bab.idx") || 0), dark = false;
+  var credItems = [], roll = null, wasCred = false, credDone = false;
 
   function saveOpts() {
     store.set("bab.prompts", ta.value); store.set("bab.name", nameIn.value);
     store.set("bab.numCard", numCard.checked ? "1" : "0"); store.set("bab.sec", showSec.checked ? "1" : "0"); store.set("bab.dots", showDots.checked ? "1" : "0");
-    if (soundsLoaded) store.set("bab.psound", psound.value);
+    if (soundsLoaded) { store.set("bab.psound", psound.value); store.set("bab.credMusic", credMusic.value); }
+    store.set("bab.credits", credText.value); store.set("bab.credSpeed", credSpeed.value);
   }
 
   function rebuild() {
     var curI = slides[idx] ? slides[idx].i : null, curT = slides[idx] ? slides[idx].t : null;
     prompts = BAB.parse(ta.value);
-    slides = BAB.buildSlides(prompts, { numCard: numCard.checked, showSec: showSec.checked });
+    credItems = BAB.parseCredits(credText.value);
+    slides = BAB.buildSlides(prompts, { numCard: numCard.checked, showSec: showSec.checked, credits: credItems.length > 0 });
     // Try to stay on the same prompt after an edit.
     if (curI != null) { for (var k = 0; k < slides.length; k++) if (slides[k].i === curI && slides[k].t === curT) { idx = k; break; } }
+    else if (curT) { for (var k2 = 0; k2 < slides.length; k2++) if (slides[k2].t === curT && curT !== "sec") { idx = k2; break; } }
     idx = Math.max(0, Math.min(slides.length - 1, idx));
     renderList(); renderWarns(); update();
   }
-  [ta, nameIn].forEach(function (el) { el.addEventListener("input", function () { saveOpts(); rebuild(); }); });
-  [numCard, showSec, showDots, psound].forEach(function (el) { el.addEventListener("change", function () { saveOpts(); rebuild(); }); });
+  [ta, nameIn, credText].forEach(function (el) { el.addEventListener("input", function () { saveOpts(); rebuild(); }); });
+  [numCard, showSec, showDots, psound, credSpeed, credMusic].forEach(function (el) { el.addEventListener("change", function () { saveOpts(); rebuild(); }); });
 
   function renderWarns() {
     var bad = prompts.filter(function (p) { return p.bad; });
@@ -358,7 +393,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
   function curPromptIndex() {
     var s = slides[idx]; if (!s) return -1;
     if (s.i != null) return s.i;
-    if (s.t === "end") return prompts.length;
+    if (s.t === "end" || s.t === "credits") return prompts.length;
     for (var k = idx; k < slides.length; k++) if (slides[k].i != null) return slides[k].i - 0.5;
     return -1;
   }
@@ -408,11 +443,16 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     for (var j = k; j < slides.length; j++) if (slides[j].i != null) return slides[j].i - 0.5;
     return prompts.length;
   }
+  function view(k) {
+    var v = BAB.slideView(slides[k], prompts);
+    if (v && v.t === "credits") v.items = credItems;
+    return v;
+  }
   function stateMsg() {
     return {
-      type: "state", cur: BAB.slideView(slides[idx], prompts), next: BAB.slideView(slides[idx + 1], prompts),
+      type: "state", cur: view(idx), next: view(idx + 1),
       name: nameIn.value.trim(), total: prompts.length, prog: progOf(idx), nextProg: progOf(idx + 1),
-      dots: showDots.checked, dark: dark
+      dots: showDots.checked, dark: dark, roll: roll, speed: +credSpeed.value
     };
   }
   function send() { post(stateMsg()); }
@@ -420,7 +460,15 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
   function update() {
     store.set("bab.idx", String(idx));
     var s = slides[idx];
-    $("pos").textContent = !s ? "" : s.t === "title" ? "Title card" : s.t === "sec" ? s.sec : s.t === "end" ? "End card" :
+    // Entering or leaving the credits starts or stops the roll and its music.
+    var onCred = !!(s && s.t === "credits");
+    if (onCred && !wasCred) { roll = { t0: Date.now() + 800, pausedAt: null }; credDone = false; var m = byId(credMusic.value); if (m) playSound(m, true); }
+    if (!onCred && wasCred) { roll = null; if (act[credMusic.value]) fadeOut(credMusic.value, 2); }
+    wasCred = onCred;
+    $("credBtn").hidden = !credItems.length;
+    $("credBtn").innerHTML = !onCred ? "Roll credits <kbd>C</kbd>" : roll && roll.pausedAt ? "Resume credits <kbd>P</kbd>" : "Pause credits <kbd>P</kbd>";
+    $("credBtn").classList.toggle("lit", onCred);
+    $("pos").textContent = !s ? "" : s.t === "credits" ? (credDone ? "Credits finished" : roll && roll.pausedAt ? "Credits paused" : "Credits rolling") : s.t === "title" ? "Title card" : s.t === "sec" ? s.sec : s.t === "end" ? "End card" :
       s.t === "num" ? "Prompt " + (s.i + 1) + " number card" : s.t === "video" ? "Prompt " + (s.i + 1) + " video playing" : "Prompt " + (s.i + 1) + " of " + prompts.length;
     $("darkBtn").classList.toggle("lit", dark);
     $("darkBtn").textContent = dark ? "Blackout ON" : "Blackout";
@@ -437,10 +485,22 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
   }
   function jump(k) { idx = Math.max(0, Math.min(slides.length - 1, k)); update(); }
   function toggleDark() { dark = !dark; update(); }
+  function credIdx() { for (var k = 0; k < slides.length; k++) if (slides[k].t === "credits") return k; return -1; }
+  function endIdx() { for (var k = 0; k < slides.length; k++) if (slides[k].t === "end") return k; return slides.length - 1; }
+  function onCredits() { return slides[idx] && slides[idx].t === "credits"; }
+  function rollCredits() { var k = credIdx(); if (k === -1) return; if (k === idx) { restartCredits(); return; } jump(k); }
+  function pauseCredits() {
+    if (!roll) return;
+    var now = Date.now();
+    if (roll.pausedAt) { roll = { t0: roll.t0 + (now - roll.pausedAt), pausedAt: null }; }
+    else roll = { t0: roll.t0, pausedAt: now };
+    update();
+  }
+  function restartCredits() { roll = { t0: Date.now() + 300, pausedAt: null }; credDone = false; update(); }
 
   document.querySelector(".transport").addEventListener("click", function (e) {
     var b = e.target.closest("[data-act]"); if (!b) return;
-    ({ prev: function () { go(-1); }, next: function () { go(1); }, dark: toggleDark, home: function () { jump(0); }, end: function () { jump(slides.length - 1); } })[b.dataset.act]();
+    ({ prev: function () { go(-1); }, next: function () { go(1); }, dark: toggleDark, home: function () { jump(0); }, end: function () { jump(endIdx()); }, credits: function () { if (onCredits()) pauseCredits(); else rollCredits(); } })[b.dataset.act]();
   });
 
   // ================= Previews =================
@@ -543,6 +603,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     else if (m.type === "pong") { var was = Date.now() - lastPong < 5000; lastPong = Date.now(); if (!was) { paintStatus(); renderVideoPanel(); } }
     else if (m.type === "bye") { lastPong = 0; paintStatus(); renderVideoPanel(); }
     else if (m.type === "vstat") { vstat = m; paintVstat(); }
+    else if (m.type === "rstat") { if (m.done && onCredits() && !credDone) { credDone = true; update(); } }
     else if (m.type === "key") { handleKey(m); }
   };
 
@@ -627,6 +688,9 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     var cur = store.get("bab.psound") || "";
     psound.innerHTML = '<option value="">None</option>' + sounds.map(function (s) { return '<option value="' + s.id + '">' + esc(s.name) + '</option>'; }).join("");
     psound.value = sounds.some(function (s) { return s.id === cur; }) ? cur : "";
+    var cm = store.get("bab.credMusic") || "";
+    credMusic.innerHTML = psound.innerHTML;
+    credMusic.value = sounds.some(function (s) { return s.id === cm; }) ? cm : "";
   }
   $("pads").addEventListener("click", function (e) { var b = e.target.closest(".pad"); if (b) playSound(byId(b.dataset.id)); });
   function byId(id) { for (var i = 0; i < sounds.length; i++) if (sounds[i].id === id) return sounds[i]; return null; }
@@ -747,7 +811,10 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     if (PREV.indexOf(key) !== -1) { go(-1); return true; }
     if (key === "b" || key === "B" || key === ".") { toggleDark(); return true; }
     if (key === "Home") { jump(0); return true; }
-    if (key === "End") { jump(slides.length - 1); return true; }
+    if (key === "End") { jump(endIdx()); return true; }
+    if (key === "c" || key === "C") { rollCredits(); return true; }
+    if (onCredits() && (key === "p" || key === "P" || key === "k" || key === "K")) { pauseCredits(); return true; }
+    if (onCredits() && (key === "r" || key === "R")) { restartCredits(); return true; }
     if (key === "p" || key === "P" || key === "k" || key === "K") { post({ type: "vcmd", cmd: "toggle" }); return true; }
     if (key === "r" || key === "R") { post({ type: "vcmd", cmd: "restart" }); return true; }
     if (key === "x" || key === "X") { if (k.shift) fadeAll(); else stopAll(); return true; }
