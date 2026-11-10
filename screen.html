@@ -332,11 +332,12 @@ body.awake #lost.on { display: block; }
   bc.onmessage = function (e) {
     var m = e.data || {};
     if (m.type === "state") { lastSeen = Date.now(); render(m); }
-    else if (m.type === "ping") { lastSeen = Date.now(); if (isMain) post({ type: "pong" }); }
+    else if (m.type === "ping") { lastSeen = Date.now(); if (isMain) post({ type: "pong", build: BAB.BUILD }); }
+    else if (m.type === "reload") { location.reload(); }
     else if (m.type === "vcmd" && isMain) vcmd(m);
     else if (m.type === "vquery" && isMain) vstat();
   };
-  post({ type: "hello", role: role });
+  post({ type: "hello", role: role, build: BAB.BUILD });
 
   if (isMain) {
     // Waiting-for-console note

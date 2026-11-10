@@ -147,6 +147,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     <button role="tab" data-tab="sounds" aria-selected="false">Sounds</button>
   </nav>
   <div class="screenctl">
+    <button class="btn" id="scrReload" type="button" hidden title="The audience window is running an older version of the app">Update audience screen</button>
     <span class="pill" id="scrStatus">Audience screen not open</span>
     <button class="btn go" id="openScr" type="button">Open audience screen</button>
   </div>
@@ -540,7 +541,8 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
   window.addEventListener("resize", sizePreviews);
 
   // ================= Audience screen =================
-  var scrWin = null, screenInfo = null, lastPong = 0;
+  var scrWin = null, screenInfo = null, lastPong = 0, scrBuild = BAB.BUILD;
+  $("scrReload").onclick = function () { post({ type: "reload" }); this.hidden = true; };
   function extScreen() {
     if (!screenInfo) return null;
     var cur = screenInfo.currentScreen;
@@ -573,7 +575,10 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
   function paintStatus() {
     var on = Date.now() - lastPong < 5000, el = $("scrStatus");
     el.classList.toggle("on", on);
-    el.textContent = on ? "Audience screen connected" : "Audience screen not open";
+    var stale = on && scrBuild !== BAB.BUILD;
+    el.textContent = !on ? "Audience screen not open" : !stale ? "Audience screen connected" : scrBuild === "old" ? "Audience screen is out of date: click it and press ⌘R" : "Audience screen is out of date";
+    el.classList.toggle("warn", stale);
+    $("scrReload").hidden = !stale || scrBuild === "old";
     $("openScr").textContent = on ? "Show audience window" : "Open audience screen";
   }
 
@@ -625,6 +630,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
 
   bc.onmessage = function (e) {
     var m = e.data || {};
+    if ((m.type === "hello" && m.role === "main") || m.type === "pong") { scrBuild = m.build || "old"; paintStatus(); }
     if (m.type === "hello") { send(); if (m.role === "main") { lastPong = Date.now(); post({ type: "vcmd", cmd: "vol", v: vvol }); paintStatus(); } }
     else if (m.type === "pong") { var was = Date.now() - lastPong < 5000; lastPong = Date.now(); if (!was) { paintStatus(); renderVideoPanel(); } }
     else if (m.type === "bye") { lastPong = 0; paintStatus(); renderVideoPanel(); }
