@@ -492,8 +492,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     if (onCred && !wasCred) { roll = { t0: Date.now() + 800, pausedAt: null }; credDone = false; var m = byId(credMusic.value); if (m) playSound(m, true); }
     if (!onCred && wasCred) { roll = null; if (act[credMusic.value]) fadeOut(credMusic.value, 2); }
     wasCred = onCred;
-    $("credBtn").hidden = !credItems.length;
-    $("credBtn").innerHTML = !onCred ? "Roll credits <kbd>C</kbd>" : roll && roll.pausedAt ? "Resume credits <kbd>P</kbd>" : "Pause credits <kbd>P</kbd>";
+    $("credBtn").innerHTML = !credItems.length ? "Add credits" : !onCred ? "Roll credits <kbd>C</kbd>" : roll && roll.pausedAt ? "Resume credits <kbd>P</kbd>" : "Pause credits <kbd>P</kbd>";
     $("credBtn").classList.toggle("lit", onCred);
     $("pos").textContent = !s ? "" : s.t === "credits" ? (credDone ? "Credits finished" : roll && roll.pausedAt ? "Credits paused" : "Credits rolling") : s.t === "title" ? "Welcome card" : s.t === "sec" ? s.sec : s.t === "end" ? "End card" :
       s.t === "num" ? "Prompt " + (s.i + 1) + " number card" : s.t === "video" ? "Prompt " + (s.i + 1) + " video playing" : s.t === "dir" ? "Line " + prompts[s.i].n + " · direction " + (s.d + 1) + " of " + prompts[s.i].dirs.length : "Prompt " + (s.i + 1) + " of " + prompts.length;
@@ -527,7 +526,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
 
   document.querySelector(".transport").addEventListener("click", function (e) {
     var b = e.target.closest("[data-act]"); if (!b) return;
-    ({ prev: function () { go(-1); }, next: function () { go(1); }, dark: toggleDark, home: function () { jump(0); }, end: function () { jump(endIdx()); }, credits: function () { if (onCredits()) pauseCredits(); else rollCredits(); } })[b.dataset.act]();
+    ({ prev: function () { go(-1); }, next: function () { go(1); }, dark: toggleDark, home: function () { jump(0); }, end: function () { jump(endIdx()); }, credits: function () { if (!credItems.length) { setTab("credits"); $("credText").focus(); } else if (onCredits()) pauseCredits(); else rollCredits(); } })[b.dataset.act]();
   });
 
   // ================= Previews =================
