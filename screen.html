@@ -160,7 +160,7 @@ body.awake #lost.on { display: block; }
         '<div class="prompt dir enter" id="ptext">' + esc(s.dir) + '</div>';
     }
     if (s.t === "prompt") {
-      var label = s.ndirs ? "Line " + s.n + " of " + s.of : s.kind === "minigame" ? "Minigame" : "Prompt " + (s.i + 1);
+      var label = s.ndirs ? "Line " + s.n + " of " + s.of : s.kind === "minigame" && s.video ? "Video " + s.n + " of " + s.of : s.kind === "minigame" ? "Minigame" : "Prompt " + (s.i + 1);
       var h = '<div class="tag enter">' + label + '</div>';
       if (s.video) h += '<div class="vbadge enter">Video prompt</div>';
       if (s.text) h += '<div class="prompt enter" id="ptext">' + esc(s.text) + '</div>';
