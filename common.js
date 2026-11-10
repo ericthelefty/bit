@@ -9,9 +9,18 @@ var BAB = (function () {
   }
 
   function isSection(l) {
-    return /^##\s*/.test(l) || /^for (one|two|three|four|five|\d+|all|everyone)\b.*performers?:?$/i.test(l);
+    return /^##\s*/.test(l) || /^for (one|two|three|four|five|\d+|all|everyone)\b.*performers?:?$/i.test(l) || /^mini-?game\s*[:\-–—]/i.test(l);
   }
   function sectionName(l) { return l.replace(/^##\s*/, "").replace(/:$/, "").trim(); }
+  // "Minigame: Big Title (Subtitle)" -> { name: "Big Title", sub: "Subtitle", kind: "minigame" }
+  function sectionInfo(l) {
+    var name = sectionName(l), kind = "", sub = "";
+    var m = name.match(/^mini-?game\s*[:\-–—]\s*(.+)$/i);
+    if (m) { kind = "minigame"; name = m[1].trim(); }
+    var ps = name.match(/^(.+?)\s*\(([^()]+)\)$/);
+    if (ps) { name = ps[1].trim(); sub = ps[2].trim(); }
+    return { name: name, sub: sub, kind: kind };
+  }
 
   // "90", "1:30", "1:02:03", "1m30s", "90s" -> seconds
   function parseTime(s) {
@@ -59,25 +68,34 @@ var BAB = (function () {
     return { video: v, caption: toks.join(" ") };
   }
 
+  var BULLET = /^([*\-•–◦▪·]|\d+[.)])\s+/;
   function parse(text) {
-    var sec = "", out = [];
+    var sec = { name: "", sub: "", kind: "" }, out = [], lastP = null;
     String(text || "").split(/\r?\n/).forEach(function (raw) {
       var l = raw.trim();
       if (!l) return;
-      if (isSection(l)) { sec = sectionName(l); return; }
+      if (isSection(l)) { sec = sectionInfo(l); lastP = null; return; }
       if (l.charAt(0) === "#") return;
-      l = l.replace(/^([*\-•–]|\d+[.)])\s+/, "");
+      // An indented bullet under a line is a direction for that line.
+      var indented = /^(\s{2,}|\t)/.test(raw) && BULLET.test(l);
+      l = l.replace(BULLET, "");
+      if (indented && lastP && !lastP.video) { lastP.dirs.push(l); return; }
       var i = l.indexOf("|");
       var main = i === -1 ? l : l.slice(0, i).trim(), who = i === -1 ? "" : l.slice(i + 1).trim();
-      var p = { text: main, who: who, sec: sec, video: null };
+      main = main.replace(/^(["“”])["“”]+/, "$1");           // tidy a doubled opening quote
+      var p = { text: main, who: who, sec: sec.name, secSub: sec.sub, secKind: sec.kind, video: null, dirs: [] };
       var vm = main.match(/^video\s*:\s*(.+)$/i);
       if (vm) {
         var pv = parseVideo(vm[1]);
         if (pv) { p.video = pv.video; p.text = pv.caption; }
         else { p.bad = "Couldn't read that YouTube link"; }
       }
-      if (p.text || p.video) out.push(p);
+      if (p.text || p.video) { out.push(p); lastP = p; }
     });
+    // Number lines within their section ("Line 2 of 3").
+    var counts = {};
+    out.forEach(function (p) { counts[p.sec] = (counts[p.sec] || 0) + 1; p.n = counts[p.sec]; });
+    out.forEach(function (p) { p.of = counts[p.sec]; });
     return out;
   }
 
@@ -85,11 +103,12 @@ var BAB = (function () {
   function buildSlides(prompts, opts) {
     var slides = [{ t: "title" }], last = null;
     prompts.forEach(function (p, i) {
-      if (p.sec && p.sec !== last && opts.showSec) slides.push({ t: "sec", sec: p.sec });
+      if (p.sec && p.sec !== last && opts.showSec) slides.push({ t: "sec", sec: p.sec, sub: p.secSub, kind: p.secKind });
       last = p.sec;
       if (opts.numCard) slides.push({ t: "num", i: i });
       slides.push({ t: "prompt", i: i });
       if (p.video) slides.push({ t: "video", i: i });
+      p.dirs.forEach(function (_, d) { slides.push({ t: "dir", i: i, d: d }); });
     });
     slides.push({ t: "end" });
     if (opts.credits) slides.push({ t: "credits" });
@@ -100,10 +119,12 @@ var BAB = (function () {
   function slideView(s, prompts) {
     if (!s) return null;
     var v = { t: s.t };
-    if (s.sec) v.sec = s.sec;
+    if (s.sec) { v.sec = s.sec; v.sub = s.sub; v.kind = s.kind; }
     if (s.i != null) {
       var p = prompts[s.i];
       v.i = s.i; v.text = p.text; v.who = p.who; v.psec = p.sec; v.video = p.video;
+      v.kind = p.secKind; v.n = p.n; v.of = p.of; v.ndirs = p.dirs.length;
+      if (s.d != null) { v.d = s.d; v.dir = p.dirs[s.d]; }
     }
     return v;
   }

@@ -34,6 +34,10 @@ body.awake { cursor: default; }
 .big-title { font-family: var(--display); font-weight: 900; text-transform: uppercase; line-height: .9; font-size: 16vmin; text-wrap: balance; text-shadow: 0 0 6vmin rgba(255,190,61,.35); }
 .big-num { font-family: var(--display); font-weight: 900; font-size: 42vmin; line-height: .8; color: var(--bulb); text-shadow: 0 0 8vmin rgba(255,190,61,.4); font-variant-numeric: tabular-nums; }
 .sub { color: var(--dim); font-size: 3.2vmin; font-weight: 600; }
+.big-title.mg { font-size: 12vmin; max-width: 100%; }
+.mg-sub { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 5vmin; color: var(--chalk); background: var(--curtain); padding: .25em .9em .2em; border-radius: 1.4vmin; transform: rotate(-1.5deg); }
+.line-small { font-weight: 700; font-size: 4.4vmin; line-height: 1.2; color: var(--dim); max-width: 90%; text-wrap: balance; }
+.prompt.dir { color: var(--bulb); }
 .logo { display: block; width: min(80vw, 150vmin); max-height: 42vh; object-fit: contain; filter: drop-shadow(0 1.2vmin 2.4vmin rgba(0,0,0,.55)); }
 .logo.small { width: min(46vw, 80vmin); max-height: 22vh; }
 .logo.enter { animation: logo-in .7s cubic-bezier(.2,.9,.25,1.15) both; }
@@ -135,10 +139,19 @@ body.awake #lost.on { display: block; }
     var logo = '<img class="logo enter" src="logo.png" alt="Build a Bit">';
     if (!s) return '<div class="sub">End of the show</div>';
     if (s.t === "title") return logo + '<div class="sub enter">' + (sub ? esc(sub) + ' · ' : '') + st.total + (st.total === 1 ? ' prompt' : ' prompts') + ' tonight</div>';
-    if (s.t === "sec") return '<div class="tag enter">Next up</div><div class="big-title enter">' + esc(s.sec) + '</div>';
+    if (s.t === "sec") {
+      if (s.kind === "minigame") return '<div class="tag enter">Minigame</div><div class="big-title mg enter">' + esc(s.sec) + '</div>' + (s.sub ? '<div class="mg-sub enter">' + esc(s.sub) + '</div>' : '');
+      return '<div class="tag enter">Next up</div><div class="big-title enter">' + esc(s.sec) + '</div>' + (s.sub ? '<div class="mg-sub enter">' + esc(s.sub) + '</div>' : '');
+    }
     if (s.t === "num") return '<div class="tag enter">Prompt</div><div class="big-num enter">' + (s.i + 1) + '</div>';
+    if (s.t === "dir") {
+      return '<div class="tag enter">Direction ' + (s.d + 1) + ' of ' + s.ndirs + '</div>' +
+        '<div class="line-small">' + esc(s.text) + '</div>' +
+        '<div class="prompt dir enter" id="ptext">' + esc(s.dir) + '</div>';
+    }
     if (s.t === "prompt") {
-      var h = '<div class="tag enter">Prompt ' + (s.i + 1) + '</div>';
+      var label = s.ndirs ? "Line " + s.n + " of " + s.of : s.kind === "minigame" ? "Minigame" : "Prompt " + (s.i + 1);
+      var h = '<div class="tag enter">' + label + '</div>';
       if (s.video) h += '<div class="vbadge enter">Video prompt</div>';
       if (s.text) h += '<div class="prompt enter" id="ptext">' + esc(s.text) + '</div>';
       if (s.who || s.psec) h += '<div class="players enter">' + esc(s.who || s.psec) + '</div>';

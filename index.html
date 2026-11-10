@@ -255,6 +255,9 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
         <p class="hint"><b style="color:var(--chalk)">Video prompts:</b> start the line with <code>video:</code>, then the YouTube link, then an optional time range and caption:</p>
         <p class="hint"><code>video: https://youtu.be/abc123XYZ90 0:30-1:45 Dub this nature doc | Dana &amp; Luis</code></p>
         <p class="hint">The screen shows the prompt card first. Press Next to play the clip full screen, then Next again to move on. The time range is optional, and a <code>?t=</code> in the link also sets the start.</p>
+        <p class="hint"><b style="color:var(--chalk)">Minigames:</b> start a section with <code>Minigame: It’s D’improv (Take Some Direction)</code>. The part in parentheses shows as a subtitle on the minigame card.</p>
+        <p class="hint"><b style="color:var(--chalk)">Directions:</b> indent bullets under a line and each one becomes its own step. The line stays on screen, small, and each Next reveals the next direction.</p>
+        <p class="hint"><code>* “That’s what she said.”</code><br><code>&nbsp;&nbsp;&nbsp;* Italian.</code><br><code>&nbsp;&nbsp;&nbsp;* More Italian.</code></p>
         <p class="hint">Bullets are stripped, blank lines are skipped, and lines starting with a single <code>#</code> are notes that never show.</p>
         <div id="warns" class="warnbox" hidden></div>
         <span class="lbl" style="margin-top:6px">Options</span>
@@ -382,10 +385,11 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     var last = null;
     ol.innerHTML = prompts.map(function (p, i) {
       var h = "";
-      if (p.sec !== last) { last = p.sec; if (p.sec) h = '<div class="sechd">' + esc(p.sec) + '</div>'; }
+      if (p.sec !== last) { last = p.sec; if (p.sec) h = '<div class="sechd">' + (p.secKind === "minigame" ? '<span class="v" style="background:var(--curtain);color:var(--chalk)">MINIGAME</span>' : "") + esc(p.sec) + '</div>'; }
       return h + '<li data-i="' + i + '" class="' + (p.bad ? "bad" : "") + '"><span class="n">' + (i + 1) + '</span><span>' +
         (p.video ? '<span class="v">VIDEO</span>' : "") + esc(p.text || (p.video ? "(no caption)" : "")) +
         (p.who ? '<span class="p">' + esc(p.who) + '</span>' : "") +
+        (p.dirs.length ? '<span class="p">' + p.dirs.length + (p.dirs.length === 1 ? ' direction' : ' directions') + '</span>' : "") +
         (p.bad ? '<span class="err">' + esc(p.bad) + '</span>' : "") + '</span></li>';
     }).join("");
     markList();
@@ -416,9 +420,11 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     var blocks = [{ head: [], items: [] }];
     ta.value.split(/\r?\n/).forEach(function (raw) {
       var t = raw.trim();
-      if (/^##\s*/.test(t) || /^for (one|two|three|four|five|\d+|all|everyone)\b.*performers?:?$/i.test(t)) blocks.push({ head: [raw], items: [] });
-      else if (!t || t.charAt(0) === "#") { if (t) blocks[blocks.length - 1].head.push(raw); }
-      else blocks[blocks.length - 1].items.push(raw);
+      var bl = blocks[blocks.length - 1];
+      if (/^##\s*/.test(t) || /^for (one|two|three|four|five|\d+|all|everyone)\b.*performers?:?$/i.test(t) || /^mini-?game\s*[:\-–—]/i.test(t)) blocks.push({ head: [raw], items: [] });
+      else if (!t || t.charAt(0) === "#") { if (t) bl.head.push(raw); }
+      else if (/^(\s{2,}|\t)/.test(raw) && bl.items.length) bl.items[bl.items.length - 1] += "\n" + raw;
+      else bl.items.push(raw);
     });
     ta.value = blocks.filter(function (b) { return b.head.length || b.items.length; }).map(function (b) {
       var it = b.items;
@@ -469,7 +475,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     $("credBtn").innerHTML = !onCred ? "Roll credits <kbd>C</kbd>" : roll && roll.pausedAt ? "Resume credits <kbd>P</kbd>" : "Pause credits <kbd>P</kbd>";
     $("credBtn").classList.toggle("lit", onCred);
     $("pos").textContent = !s ? "" : s.t === "credits" ? (credDone ? "Credits finished" : roll && roll.pausedAt ? "Credits paused" : "Credits rolling") : s.t === "title" ? "Title card" : s.t === "sec" ? s.sec : s.t === "end" ? "End card" :
-      s.t === "num" ? "Prompt " + (s.i + 1) + " number card" : s.t === "video" ? "Prompt " + (s.i + 1) + " video playing" : "Prompt " + (s.i + 1) + " of " + prompts.length;
+      s.t === "num" ? "Prompt " + (s.i + 1) + " number card" : s.t === "video" ? "Prompt " + (s.i + 1) + " video playing" : s.t === "dir" ? "Line " + prompts[s.i].n + " · direction " + (s.d + 1) + " of " + prompts[s.i].dirs.length : "Prompt " + (s.i + 1) + " of " + prompts.length;
     $("darkBtn").classList.toggle("lit", dark);
     $("darkBtn").textContent = dark ? "Blackout ON" : "Blackout";
     markList(); scrollNow();
