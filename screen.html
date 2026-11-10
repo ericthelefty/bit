@@ -227,10 +227,10 @@ body.awake #lost.on { display: block; }
     var y;
     if (!roll) y = H * 0.18;                          // static look (Next preview)
     else {
-      // Scroll up until the logo is centered, hold it for a few seconds, then start over from the top of the credits.
-      var pps = speed / 100 * window.innerHeight, travel = Math.max(0.1, (H - stop) / pps), HOLD = 4;
-      var el2 = Math.max(0, ((roll.pausedAt || Date.now()) - roll.t0) / 1000) % (travel + HOLD);
-      y = Math.max(stop, H - el2 * pps);
+      // Scroll everything up and off the top, stay black for a moment, then start over from the top of the credits.
+      var pps = speed / 100 * window.innerHeight, end = -el.offsetHeight, travel = Math.max(0.1, (H - end) / pps), GAP = 1.5;
+      var el2 = Math.max(0, ((roll.pausedAt || Date.now()) - roll.t0) / 1000) % (travel + GAP);
+      y = Math.max(end, H - el2 * pps);
     }
     el.style.transform = "translateY(" + y + "px)";
     requestAnimationFrame(rollTick);
