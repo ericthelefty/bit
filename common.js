@@ -12,10 +12,13 @@ var BAB = (function () {
     return /^##\s*/.test(l) || /^for (one|two|three|four|five|\d+|all|everyone)\b.*performers?:?$/i.test(l) || /^mini-?game\s*[:\-–—]/i.test(l);
   }
   function sectionName(l) { return l.replace(/^##\s*/, "").replace(/:$/, "").trim(); }
-  // Title art for minigames, matched on the minigame's name. Add a row per new minigame.
+  // Title art for minigames and sections, matched on the name. Add a row per new piece of art.
   var MINIGAME_ART = [
     { match: /d[’'`]?\s*improv/i, src: "art/its-dimprov.png", alt: "It's D'improv" },
-    { match: /would you look at that/i, src: "art/would-you-look-at-that.png", alt: "Would You Look at That!" }
+    { match: /would you look at that/i, src: "art/would-you-look-at-that.png", alt: "Would You Look at That!" },
+    { match: /^for (one|1) performer/i, src: "art/one-performer.png", alt: "One Performer" },
+    { match: /^for (two|2) performers?/i, src: "art/two-performers.png", alt: "Two Performers" },
+    { match: /^for (three|3) performers?/i, src: "art/three-performers.png", alt: "Three Performers" }
   ];
   function artFor(name) {
     for (var i = 0; i < MINIGAME_ART.length; i++) if (MINIGAME_ART[i].match.test(name)) return MINIGAME_ART[i];
@@ -29,7 +32,7 @@ var BAB = (function () {
     if (m) { kind = "minigame"; name = m[1].trim(); }
     var ps = name.match(/^(.+?)\s*\(([^()]+)\)$/);
     if (ps) { name = ps[1].trim(); sub = ps[2].trim(); }
-    var art = kind ? artFor(name) : null;
+    var art = artFor(name);
     return { name: name, sub: sub, kind: kind, art: art ? art.src : "", alt: art ? art.alt : "" };
   }
 
