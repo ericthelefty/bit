@@ -14,7 +14,8 @@ var BAB = (function () {
   function sectionName(l) { return l.replace(/^##\s*/, "").replace(/:$/, "").trim(); }
   // Title art for minigames, matched on the minigame's name. Add a row per new minigame.
   var MINIGAME_ART = [
-    { match: /d[’'`]?\s*improv/i, src: "art/its-dimprov.png", alt: "It's D'improv" }
+    { match: /d[’'`]?\s*improv/i, src: "art/its-dimprov.png", alt: "It's D'improv" },
+    { match: /would you look at that/i, src: "art/would-you-look-at-that.png", alt: "Would You Look at That!" }
   ];
   function artFor(name) {
     for (var i = 0; i < MINIGAME_ART.length; i++) if (MINIGAME_ART[i].match.test(name)) return MINIGAME_ART[i];
