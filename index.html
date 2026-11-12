@@ -586,7 +586,15 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
   $("vVol").value = vvol;
   $("vVol").addEventListener("input", function () { vvol = +this.value; store.set("bab.vvol", this.value); post({ type: "vcmd", cmd: "vol", v: vvol }); });
   $("vVol").addEventListener("change", function () { this.blur(); });
-  $("vPlay").onclick = function () { post({ type: "vcmd", cmd: "toggle" }); };
+  // Play works from the prompt card too: it moves on to the video slide, which starts the clip.
+  function videoPlay() {
+    var s = slides[idx];
+    if (s && s.t !== "video" && s.i != null && prompts[s.i].video) { for (var k = idx; k < slides.length; k++) if (slides[k].t === "video" && slides[k].i === s.i) { jump(k); return; } }
+    var n = slides[idx + 1];
+    if (s && s.t !== "video" && n && n.t === "video") { go(1); return; }
+    post({ type: "vcmd", cmd: "toggle" });
+  }
+  $("vPlay").onclick = videoPlay;
   $("vRestart").onclick = function () { post({ type: "vcmd", cmd: "restart" }); };
 
   function panelVideo() {
@@ -604,7 +612,8 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     $("vThumb").src = "https://i.ytimg.com/vi/" + v.id + "/mqdefault.jpg";
     $("vTitle").textContent = p.text || "youtu.be/" + v.id;
     $("vRange").textContent = (v.start || v.end) ? "Plays " + BAB.fmtTime(v.start || 0) + (v.end ? " to " + BAB.fmtTime(v.end) : " to the end") : "Plays from the start";
-    $("vPlay").disabled = $("vRestart").disabled = !pv.live;
+    $("vRestart").disabled = !pv.live;
+    $("vPlay").innerHTML = pv.live ? "Play / pause <kbd>P</kbd>" : "▶ Play video <kbd>P</kbd>";
     paintVstat();
   }
   function paintVstat() {
@@ -614,7 +623,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     var mine = vstat.key === BAB.vkey(v);
     var label = "", cls = "";
     if (!connected) label = "Open the audience screen to play";
-    else if (vstat.err && (mine || !vstat.key)) label = "Problem";
+    else if (vstat.err && (mine || !vstat.key)) label = vstat.state === "playing" ? "Playing, no sound" : "Problem";
     else if (!mine) label = vstat.state === "loading" ? "Loading YouTube…" : "Getting ready…";
     else label = { playing: "Playing", paused: "Paused", ended: "Clip ended", buffering: "Buffering…", ready: pv.live ? "Ready" : "Loaded and ready", unstarted: pv.live ? "Starting…" : "Loaded", loading: "Loading YouTube…" }[vstat.state] || "";
     if (mine && vstat.state === "playing") cls = "playing";
@@ -846,7 +855,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     if (key === "c" || key === "C") { rollCredits(); return true; }
     if (onCredits() && (key === "p" || key === "P" || key === "k" || key === "K")) { pauseCredits(); return true; }
     if (onCredits() && (key === "r" || key === "R")) { restartCredits(); return true; }
-    if (key === "p" || key === "P" || key === "k" || key === "K") { post({ type: "vcmd", cmd: "toggle" }); return true; }
+    if (key === "p" || key === "P" || key === "k" || key === "K") { videoPlay(); return true; }
     if (key === "r" || key === "R") { post({ type: "vcmd", cmd: "restart" }); return true; }
     if (key === "x" || key === "X") { if (k.shift) fadeAll(); else stopAll(); return true; }
     var m = code.match(/^(?:Digit|Numpad)(\d)$/), n = -1;

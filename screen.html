@@ -277,6 +277,7 @@ body.awake #lost.on { display: block; }
 
   // ---------------- YouTube (audience window only) ----------------
   var player = null, playerReady = false, apiAsked = false, apiFailed = false;
+  var mutedFallback = false, vvolume = 1;
   var loadedKey = "", loadedVid = null, onVideoSlide = false, wantPlay = false, ended = false, lastErr = "", wantSince = 0;
 
   function loadApi() {
@@ -319,6 +320,7 @@ body.awake #lost.on { display: block; }
       if (!onVideoSlide || loadedKey !== k) {
         // Entering the clip: start it from the top.
         ended = false; lastErr = ""; layer.classList.remove("done");
+        mutedFallback = false; if (player.isMuted && player.isMuted()) player.unMute();
         player.loadVideoById(params(v)); loadedKey = k; loadedVid = v; wantPlay = true; wantSince = Date.now();
       }
     } else {
@@ -341,10 +343,16 @@ body.awake #lost.on { display: block; }
     } else if (m.cmd === "restart") {
       if (onVideoSlide) restart();
     } else if (m.cmd === "vol") {
-      player.setVolume(Math.round(m.v * 100)); player.unMute();
+      vvolume = m.v; player.setVolume(Math.round(m.v * 100)); if (!mutedFallback) player.unMute();
     }
     vstat();
   }
+  document.addEventListener("click", function () {
+    if (!isMain || !playerReady) return;
+    if (mutedFallback) { player.unMute(); player.setVolume(Math.round(vvolume * 100)); mutedFallback = false; }
+    if (onVideoSlide && wantPlay) { var ps = player.getPlayerState(); if (ps !== 1 && ps !== 3) player.playVideo(); }
+    vstat();
+  });
   function restart() { ended = false; lastErr = ""; $("vid").classList.remove("done"); player.loadVideoById(params(loadedVid)); wantPlay = true; wantSince = Date.now(); }
 
   function vstat() {
@@ -357,8 +365,14 @@ body.awake #lost.on { display: block; }
     if (ended) m.state = "ended";
     try { m.t = player.getCurrentTime(); m.dur = player.getDuration(); } catch (e) {}
     if (loadedVid && loadedVid.end && m.t >= loadedVid.end - 0.15 && ps === 1) { player.pauseVideo(); ended = true; $("vid").classList.add("done"); m.state = "ended"; }
+    if (wantPlay && onVideoSlide && (ps === -1 || ps === 5) && Date.now() - wantSince > 2500 && !mutedFallback) {
+      // Chrome refused to start with sound: start it muted so the picture runs, and unmute on the next click.
+      mutedFallback = true; player.mute(); player.playVideo();
+    }
     if (lastErr) m.err = lastErr;
-    else if (wantPlay && onVideoSlide && (ps === -1 || ps === 5) && Date.now() - wantSince > 3000)
+    else if (mutedFallback && player.isMuted && player.isMuted())
+      m.err = "Playing without sound: Chrome blocked the audio. Click anywhere on the projector window once to turn the sound on.";
+    else if (wantPlay && onVideoSlide && (ps === -1 || ps === 5) && Date.now() - wantSince > 5000)
       m.err = "Chrome blocked the clip from starting. Click the projector window once, then press P.";
     post(m);
   }
