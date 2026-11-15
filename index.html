@@ -311,6 +311,8 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
       </div>
       <ul class="slist" id="slist"></ul>
       <p class="empty" id="slistEmpty">No sounds added yet.</p>
+      <div class="row" id="slistTools" hidden><button class="btn danger" type="button" id="delAll">Delete all sounds</button></div>
+      <div class="warnbox" id="undoBar" hidden style="position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:40;display:flex;gap:14px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.5);background:#2a2538"><span id="undoMsg"></span><button class="btn go" type="button" id="undoBtn">Undo</button></div>
     </div>
   </section>
 </main>
@@ -767,7 +769,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
       soundsLoaded = true;
       renderPads(); renderSlist();
       sounds.forEach(function (s) {
-        decode(s.blob).then(function (b) { s.buffer = b; renderSlist(); }).catch(function () { s.broken = true; renderSlist(); });
+        decode(s.blob).then(function (b) { s.buffer = b; slistSoon(); }).catch(function () { s.broken = true; slistSoon(); });
       });
     }).catch(function () {});
   }
@@ -799,8 +801,12 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
   $("tab-sounds").addEventListener("dragover", function (e) { e.preventDefault(); });
   $("tab-sounds").addEventListener("drop", function (e) { e.preventDefault(); drop.classList.remove("over"); if (e.target.closest("#drop")) return; if (e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
 
+  // Re-render the list at most once per moment, so loading many sounds doesn't keep redrawing it under your mouse.
+  var slistT = null;
+  function slistSoon() { clearTimeout(slistT); slistT = setTimeout(function () { if (!document.activeElement || !document.activeElement.closest || !document.activeElement.closest("#slist")) renderSlist(); else slistSoon(); }, 300); }
   function renderSlist() {
     $("slistEmpty").hidden = !!sounds.length;
+    $("slistTools").hidden = !sounds.length;
     $("slist").innerHTML = sounds.map(function (s, i) {
       var k = keyLabel(i);
       return '<li data-id="' + s.id + '">' +
@@ -824,6 +830,35 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     clearTimeout(renderSlist._t); renderSlist._t = setTimeout(renderPads, 250);
   });
   $("slist").addEventListener("change", function (e) { if (e.target.type === "range" || e.target.type === "checkbox") e.target.blur(); });
+  // Delete right away, with an Undo button for a few seconds.
+  var undoState = null, undoT = null;
+  function deleteSounds(list) {
+    var removed = list.map(function (x) { return { s: x, at: sounds.indexOf(x) }; }).filter(function (r) { return r.at !== -1; });
+    if (!removed.length) return;
+    removed.forEach(function (r) { stopNow(r.s.id); });
+    sounds = sounds.filter(function (x) { return list.indexOf(x) === -1; });
+    dbDo("readwrite", function (st) { var q; removed.forEach(function (r) { q = st.delete(r.s.id); }); return q; });
+    sounds.forEach(function (x, k) { if (x.order !== k) { x.order = k; saveSound(x); } });
+    renderSlist(); renderPads();
+    undoState = removed;
+    $("undoMsg").textContent = removed.length === 1 ? "Deleted “" + removed[0].s.name + "”" : "Deleted " + removed.length + " sounds";
+    $("undoBar").hidden = false;
+    clearTimeout(undoT); undoT = setTimeout(function () { $("undoBar").hidden = true; undoState = null; }, 8000);
+  }
+  $("undoBtn").onclick = function () {
+    if (!undoState) return;
+    undoState.sort(function (a, b) { return a.at - b.at; }).forEach(function (r) { sounds.splice(Math.min(r.at, sounds.length), 0, r.s); });
+    sounds.forEach(function (x, k) { x.order = k; saveSound(x); });
+    undoState = null; $("undoBar").hidden = true; renderSlist(); renderPads();
+  };
+  var delAllArmed = false;
+  $("delAll").onclick = function () {
+    var b = this;
+    if (!delAllArmed) { delAllArmed = true; b.textContent = "Delete all " + sounds.length + " sounds? Click again"; setTimeout(function () { delAllArmed = false; b.textContent = "Delete all sounds"; }, 3000); return; }
+    delAllArmed = false; b.textContent = "Delete all sounds";
+    deleteSounds(sounds.slice());
+  };
+
   $("slist").addEventListener("click", function (e) {
     var b = e.target.closest("button[data-a]"); if (!b) return;
     var li = b.closest("li[data-id]"), s = byId(li.dataset.id), i = sounds.indexOf(s);
@@ -834,12 +869,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
       sounds.forEach(function (x, k) { x.order = k; saveSound(x); });
       renderSlist(); renderPads();
     } else if (b.dataset.a === "del") {
-      if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Sure?"; setTimeout(function () { if (b.isConnected) { delete b.dataset.armed; b.textContent = "Delete"; } }, 3000); return; }
-      stopNow(s.id);
-      sounds.splice(i, 1);
-      dbDo("readwrite", function (st) { return st.delete(s.id); });
-      sounds.forEach(function (x, k) { if (x.order !== k) { x.order = k; saveSound(x); } });
-      renderSlist(); renderPads();
+      deleteSounds([s]);
     }
   });
 
