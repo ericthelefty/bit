@@ -377,12 +377,13 @@ body.awake #lost.on { display: block; }
   window.onYouTubeIframeAPIReady = function () {
     player = new YT.Player("yt", {
       width: "100%", height: "100%",
-      playerVars: { controls: 0, rel: 0, playsinline: 1, iv_load_policy: 3, disablekb: 1, fs: 0, modestbranding: 1, cc_load_policy: 0 },
+      playerVars: { controls: 0, rel: 0, playsinline: 1, iv_load_policy: 3, disablekb: 1, fs: 0, modestbranding: 1, cc_load_policy: 0, cc_lang_pref: "zz" },
       events: {
         onReady: function () { playerReady = true; apiFailed = false; if (state) videoApply(state.cur); },
         onStateChange: function (e) {
           if (e.data === 0) { ended = true; wantPlay = false; $("vid").classList.add("done"); }
-          if (e.data === 1) { ended = false; lastErr = ""; $("vid").classList.remove("done"); }
+          if (e.data === 1) { ended = false; lastErr = ""; $("vid").classList.remove("done"); captionsOff(); setTimeout(captionsOff, 800); }
+          if (e.data === 3 || e.data === 5) captionsOff();
           vstat();
         },
         onError: function (e) {
@@ -393,6 +394,14 @@ body.awake #lost.on { display: block; }
     });
   };
 
+  // YouTube can turn captions on by itself (the viewer's account setting, or the video's own default).
+  // Unloading the captions module switches them off; it has to be repeated each time a clip starts.
+  function captionsOff() {
+    if (!player) return;
+    try { player.unloadModule("captions"); } catch (e) {}
+    try { player.unloadModule("cc"); } catch (e) {}
+    try { player.setOption("captions", "track", {}); } catch (e) {}
+  }
   function params(v) { var o = { videoId: v.id }; if (v.start) o.startSeconds = v.start; if (v.end) o.endSeconds = v.end; return o; }
 
   function videoApply(s) {
