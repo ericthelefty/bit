@@ -63,6 +63,11 @@ kbd { font-family: var(--body); font-weight: 800; font-size: 11.5px; background:
 .ptab { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr); gap: 20px; max-width: 1280px; }
 @media (max-width: 900px) { .ptab { grid-template-columns: 1fr; } }
 
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; background: var(--house); border: 1px solid var(--line); border-radius: 99px; padding: 4px 6px 4px 12px; font-weight: 700; font-size: 14px; }
+.chip button { border: 0; background: none; color: var(--dim); cursor: pointer; font-size: 15px; line-height: 1; padding: 2px 5px; border-radius: 50%; }
+.chip button:hover { color: #ff8a98; background: var(--panel); }
+
 /* ---------- Sounds tab ---------- */
 .stab { max-width: 980px; display: grid; gap: 16px; }
 .drop { border: 2px dashed var(--line); border-radius: 10px; padding: 26px; text-align: center; color: var(--dim); display: grid; gap: 10px; justify-items: center; }
@@ -92,6 +97,17 @@ ol.list .n { font-family: var(--display); font-weight: 900; font-size: 16px; col
 ol.list .p { display: block; color: var(--dim); font-size: 12px; margin-top: 2px; }
 ol.list .v { display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: .06em; color: #1a1408; background: var(--bulb); border-radius: 3px; padding: 1px 5px; margin-right: 5px; vertical-align: 1px; }
 ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px; }
+/* Running-order panels */
+ol.list li.panel { grid-template-columns: 2em 1fr auto; align-items: start; }
+.asg { border: 1px solid var(--line); background: var(--panel); border-radius: 5px; padding: 3px 8px; font-size: 11.5px; font-weight: 800; letter-spacing: .04em; color: var(--dim); cursor: pointer; white-space: nowrap; }
+.asg:hover { color: var(--bulb); border-color: var(--bulb); }
+.who { display: inline-block; margin-top: 4px; font-size: 11.5px; font-weight: 800; letter-spacing: .03em; color: var(--chalk); background: var(--curtain); border-radius: 99px; padding: 1px 8px; }
+.dirs { grid-column: 1 / -1; list-style: none; margin: 6px 0 0; padding: 0 0 0 1.4em; display: grid; gap: 4px; }
+ol.list .dirs li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: start; padding: 5px 7px; border-radius: 5px; background: var(--panel); border-left: 2px solid var(--line); font-size: 12.5px; cursor: pointer; }
+ol.list .dirs li:hover { border-left-color: var(--dim); }
+ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
+#asgPop { position: fixed; z-index: 70; width: 240px; background: var(--panel); border: 1px solid var(--bulb); border-radius: 10px; padding: 10px; display: grid; gap: 6px; box-shadow: 0 14px 40px rgba(0,0,0,.6); }
+#asgPop .check { font-size: 14px; }
 .sechd { font-family: var(--display); font-weight: 900; text-transform: uppercase; letter-spacing: .06em; font-size: 15px; margin: 8px 0 1px; cursor: pointer; padding: 3px 6px; border-radius: 5px; }
 .sechd:hover { background: var(--house); color: var(--bulb); }
 .sechd.now { background: #2a2538; box-shadow: inset 3px 0 0 var(--bulb); }
@@ -142,7 +158,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
   <h1><img src="logo.png" alt="Build a Bit"></h1>
   <nav class="tabs" role="tablist">
     <button role="tab" data-tab="run" aria-selected="false">Run show</button>
-    <button role="tab" data-tab="prompts" aria-selected="false">Prompts</button>
+    <button role="tab" data-tab="prompts" aria-selected="false">Script</button>
     <button role="tab" data-tab="credits" aria-selected="false">Credits</button>
     <button role="tab" data-tab="sounds" aria-selected="false">Sounds</button>
   </nav>
@@ -244,7 +260,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
       <div class="card">
         <label class="lbl" for="showName">Subtitle under the logo (optional)</label>
         <input type="text" id="showName" placeholder="Shows on the title and end cards">
-        <label class="lbl" for="prompts">Prompts, one per line</label>
+        <label class="lbl" for="prompts">Script: prompts, one per line</label>
         <textarea id="prompts" spellcheck="true"></textarea>
         <div class="row">
           <button class="btn" id="shuffleBtn" type="button">Shuffle within sections</button>
@@ -253,7 +269,14 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
         </div>
       </div>
       <div class="card">
-        <span class="lbl">How to write them</span>
+        <span class="lbl">Performers</span>
+        <div class="row" style="flex-wrap:nowrap">
+          <input type="text" id="perfIn" placeholder="Add a performer's name" aria-label="Performer name">
+          <button class="btn go" type="button" id="perfAdd">Add</button>
+        </div>
+        <div class="chips" id="perfChips"></div>
+        <p class="hint">Assign performers to any prompt, minigame line or direction with the <b style="color:var(--chalk)">Assign</b> button in the running order on Run show. Their names show on the projector and are written into the script after a <code>|</code>.</p>
+        <span class="lbl" style="margin-top:6px">How to write them</span>
         <p class="hint">One prompt per line. Add performers after a bar: <code>A sea shanty about a parking ticket | Dana &amp; Luis</code></p>
         <p class="hint">Start a section with <code>## For Two Performers</code>. Its name shows under each prompt in that section.</p>
         <p class="hint"><b style="color:var(--chalk)">Video prompts:</b> start the line with <code>video:</code>, then the YouTube link, then an optional time range and caption:</p>
@@ -333,6 +356,12 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
   </section>
 </main>
 
+<div id="asgPop" hidden role="dialog" aria-label="Assign performers">
+  <div class="lbl" id="asgTitle">Assign</div>
+  <div id="asgList" style="display:grid;gap:6px;max-height:260px;overflow:auto"></div>
+  <div class="row" style="justify-content:space-between"><button class="btn mini" type="button" id="asgClear" style="padding:5px 9px;font-size:13px">Clear</button><button class="btn go" type="button" id="asgDone" style="padding:5px 12px;font-size:13px">Done</button></div>
+</div>
+
 <script src="common.js"></script>
 <script>
 (function () {
@@ -403,16 +432,22 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
   function renderList() {
     $("count").textContent = prompts.length + (prompts.length === 1 ? " prompt" : " prompts");
     var ol = $("list");
-    if (!prompts.length) { ol.innerHTML = '<li style="cursor:default"><span></span><span class="empty">No prompts yet. Add some on the Prompts tab.</span></li>'; return; }
+    if (!prompts.length) { ol.innerHTML = '<li style="cursor:default"><span></span><span class="empty">No prompts yet. Add some on the Script tab.</span></li>'; return; }
     var last = null;
     ol.innerHTML = prompts.map(function (p, i) {
       var h = "";
       if (p.sec !== last) { last = p.sec; if (p.sec) h = '<div class="sechd" data-first="' + i + '" tabindex="0" title="Show this section\u2019s title card">' + (p.secKind === "minigame" ? '<span class="v" style="background:var(--curtain);color:var(--chalk)">MINIGAME</span>' : "") + esc(p.sec) + '</div>'; }
-      return h + '<li data-i="' + i + '" class="' + (p.bad ? "bad" : "") + '"><span class="n">' + (i + 1) + '</span><span>' +
+      var hasDirs = p.dirs.length > 0;
+      var dirs = hasDirs ? '<ol class="dirs">' + p.dirs.map(function (d, k) {
+        return '<li data-i="' + i + '" data-d="' + k + '"><span>' + esc(d) + (p.dirWho[k] ? '<br><span class="who">' + esc(p.dirWho[k]) + '</span>' : "") + '</span>' +
+          '<button class="asg" type="button" data-line="' + p.dirLine[k] + '" data-who="' + esc(p.dirWho[k] || "") + '" data-label="' + esc(d) + '">Assign</button></li>';
+      }).join("") + '</ol>' : "";
+      return h + '<li data-i="' + i + '" class="panel' + (p.bad ? " bad" : "") + '"><span class="n">' + (i + 1) + '</span><span>' +
         (p.video ? '<span class="v">VIDEO</span>' : "") + esc(p.text || (p.video ? "(no caption)" : "")) +
-        (p.who ? '<span class="p">' + esc(p.who) + '</span>' : "") +
-        (p.dirs.length ? '<span class="p">' + p.dirs.length + (p.dirs.length === 1 ? ' direction' : ' directions') + '</span>' : "") +
-        (p.bad ? '<span class="err">' + esc(p.bad) + '</span>' : "") + '</span></li>';
+        (p.who ? '<br><span class="who">' + esc(p.who) + '</span>' : "") +
+        (p.bad ? '<span class="err">' + esc(p.bad) + '</span>' : "") + '</span>' +
+        (hasDirs ? '<span></span>' : '<button class="asg" type="button" data-line="' + p.line + '" data-who="' + esc(p.who || "") + '" data-label="' + esc(p.text || "Video") + '">Assign</button>') +
+        dirs + '</li>';
     }).join("");
     markList();
   }
@@ -427,13 +462,17 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     var c = curPromptIndex(), cs = slides[idx], secFirst = -1;
     if (cs && cs.t === "sec") for (var k = idx; k < slides.length; k++) if (slides[k].i != null) { secFirst = slides[k].i; break; }
     document.querySelectorAll("#list .sechd[data-first]").forEach(function (h) { h.classList.toggle("now", +h.dataset.first === secFirst); });
-    document.querySelectorAll("#list li[data-i]").forEach(function (li) {
+    document.querySelectorAll("#list li.panel[data-i]").forEach(function (li) {
       var i = +li.dataset.i;
       li.classList.toggle("now", i === c);
       li.classList.toggle("done", i < c);
     });
+    var cd = cs && cs.t === "dir" ? cs : null;
+    document.querySelectorAll("#list .dirs li").forEach(function (li) {
+      li.classList.toggle("now", !!cd && +li.dataset.i === cd.i && +li.dataset.d === cd.d);
+    });
   }
-  function scrollNow() { var li = document.querySelector("#list li.now"); if (li) li.scrollIntoView({ block: "nearest" }); }
+  function scrollNow() { var li = document.querySelector("#list .dirs li.now") || document.querySelector("#list li.panel.now"); if (li) li.scrollIntoView({ block: "nearest" }); }
   function jumpToSection(first) {
     for (var k = 0; k < slides.length; k++) if (slides[k].i === first) { jump(k > 0 && slides[k - 1].t === "sec" ? k - 1 : k); return; }
   }
@@ -442,12 +481,63 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     if (h && e.key === "Enter") { e.stopPropagation(); e.preventDefault(); jumpToSection(+h.dataset.first); }
   });
   $("list").addEventListener("click", function (e) {
+    var ab = e.target.closest(".asg");
+    if (ab) { e.stopPropagation(); openAssign(ab); return; }
     var hd = e.target.closest(".sechd[data-first]");
     if (hd) { jumpToSection(+hd.dataset.first); return; }
+    var dl = e.target.closest(".dirs li[data-d]");
+    if (dl) { var di = +dl.dataset.i, dd = +dl.dataset.d; for (var q = 0; q < slides.length; q++) if (slides[q].t === "dir" && slides[q].i === di && slides[q].d === dd) { jump(q); break; } return; }
     var li = e.target.closest("li[data-i]"); if (!li) return;
     var i = +li.dataset.i;
     for (var k = 0; k < slides.length; k++) if (slides[k].i === i) { jump(k); if (slides[k].t === "prompt") promptSound(); break; }
   });
+
+  // ================= Performers & assignments =================
+  var performers = [];
+  try { performers = JSON.parse(store.get("bab.performers") || "[]"); } catch (e) { performers = []; }
+  function savePerformers() { store.set("bab.performers", JSON.stringify(performers)); renderPerformers(); }
+  function renderPerformers() {
+    $("perfChips").innerHTML = performers.length ? performers.map(function (n, k) { return '<span class="chip">' + esc(n) + '<button type="button" data-k="' + k + '" aria-label="Remove ' + esc(n) + '">×</button></span>'; }).join("") : '<span class="hint">No performers yet.</span>';
+  }
+  function addPerformer() {
+    var v = $("perfIn").value.trim(); if (!v) return;
+    v.split(/\s*,\s*/).filter(Boolean).forEach(function (n) { if (performers.indexOf(n) === -1) performers.push(n); });
+    $("perfIn").value = ""; savePerformers(); $("perfIn").focus();
+  }
+  $("perfAdd").onclick = addPerformer;
+  $("perfIn").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); addPerformer(); } });
+  $("perfChips").addEventListener("click", function (e) { var b = e.target.closest("button[data-k]"); if (b) { performers.splice(+b.dataset.k, 1); savePerformers(); } });
+  renderPerformers();
+
+  var asgLine = -1;
+  function openAssign(btn) {
+    asgLine = +btn.dataset.line;
+    var cur = BAB.splitNames(btn.dataset.who), all = performers.slice();
+    cur.forEach(function (n) { if (all.indexOf(n) === -1) all.push(n); });
+    $("asgTitle").textContent = "Assign: " + (btn.dataset.label.length > 40 ? btn.dataset.label.slice(0, 40) + "…" : btn.dataset.label);
+    $("asgList").innerHTML = all.length ? all.map(function (n) {
+      return '<label class="check"><input type="checkbox" value="' + esc(n) + '"' + (cur.indexOf(n) !== -1 ? " checked" : "") + '> <span>' + esc(n) + '</span></label>';
+    }).join("") : '<p class="hint" style="margin:0">No performers yet. Add them on the <a href="#" data-goto="prompts" style="color:var(--bulb)">Script</a> tab.</p>';
+    var pop = $("asgPop"), r = btn.getBoundingClientRect();
+    pop.hidden = false;
+    var top = Math.min(r.bottom + 6, window.innerHeight - pop.offsetHeight - 10), left = Math.min(r.left, window.innerWidth - pop.offsetWidth - 10);
+    pop.style.top = Math.max(10, top) + "px"; pop.style.left = Math.max(10, left) + "px";
+  }
+  function closeAssign() { $("asgPop").hidden = true; asgLine = -1; }
+  function applyAssign() {
+    if (asgLine < 0) return;
+    var names = Array.prototype.map.call($("asgList").querySelectorAll("input:checked"), function (c) { return c.value; });
+    // keep the roster order
+    names.sort(function (a, b) { var ia = performers.indexOf(a), ib = performers.indexOf(b); return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib); });
+    var y = $("list").scrollTop;
+    ta.value = BAB.setLineWho(ta.value, asgLine, names);
+    saveOpts(); rebuild();
+    $("list").scrollTop = y;
+  }
+  $("asgList").addEventListener("change", applyAssign);
+  $("asgClear").onclick = function () { $("asgList").querySelectorAll("input").forEach(function (c) { c.checked = false; }); applyAssign(); };
+  $("asgDone").onclick = closeAssign;
+  document.addEventListener("mousedown", function (e) { if (!$("asgPop").hidden && !e.target.closest("#asgPop") && !e.target.closest(".asg")) closeAssign(); });
 
   $("shuffleBtn").onclick = function () {
     var blocks = [{ head: [], items: [] }];
@@ -662,7 +752,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     else if (m.type === "bye") { lastPong = 0; paintStatus(); renderVideoPanel(); }
     else if (m.type === "vstat") { vstat = m; paintVstat(); }
     else if (m.type === "rstat") { if (m.done && onCredits() && !credDone) { credDone = true; update(); } }
-    else if (m.type === "key") { handleKey(m); }
+    else if (m.type === "key") { if ($("asgPop").hidden && $("trimModal").hidden) handleKey(m); }
   };
 
   // ================= Sound board =================
@@ -1007,6 +1097,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
   }
   document.addEventListener("keydown", function (e) {
     if (!$("trimModal").hidden) { if (e.key === "Escape") closeTrim(); return; }
+    if (!$("asgPop").hidden) { if (e.key === "Escape") closeAssign(); return; }
     if (typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.target.tagName === "INPUT" && e.target.type === "range" && /Arrow|Page|Home|End/.test(e.key)) return;
     if (handleKey({ key: e.key, code: e.code, shift: e.shiftKey })) e.preventDefault();

@@ -1,7 +1,7 @@
 /* Build a Bit: shared helpers for the console (index.html) and the audience screen (screen.html). */
 var BAB = (function () {
   var CHANNEL = "build-a-bit";
-  var BUILD = "2026-11-15.3";   // bump on every change so an open audience window knows it is out of date
+  var BUILD = "2026-11-15.4";   // bump on every change so an open audience window knows it is out of date
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -87,7 +87,7 @@ var BAB = (function () {
   var BULLET = /^([*\-•–◦▪·]|\d+[.)])\s+/;
   function parse(text) {
     var sec = { name: "", sub: "", kind: "" }, out = [], lastP = null;
-    String(text || "").split(/\r?\n/).forEach(function (raw) {
+    String(text || "").split(/\r?\n/).forEach(function (raw, ln) {
       var l = raw.trim();
       if (!l) return;
       if (isSection(l)) { sec = sectionInfo(l); lastP = null; return; }
@@ -100,12 +100,13 @@ var BAB = (function () {
         var bar = l.indexOf("|");
         lastP.dirs.push(bar === -1 ? l : l.slice(0, bar).trim());
         lastP.dirWho.push(bar === -1 ? "" : l.slice(bar + 1).trim());
+        lastP.dirLine.push(ln);
         return;
       }
       var i = l.indexOf("|");
       var main = i === -1 ? l : l.slice(0, i).trim(), who = i === -1 ? "" : l.slice(i + 1).trim();
       main = main.replace(/^(["“”])["“”]+/, "$1");           // tidy a doubled opening quote
-      var p = { text: main, who: who, sec: sec.name, secSub: sec.sub, secKind: sec.kind, secArt: sec.art, video: null, dirs: [], dirWho: [] };
+      var p = { text: main, who: who, sec: sec.name, secSub: sec.sub, secKind: sec.kind, secArt: sec.art, video: null, dirs: [], dirWho: [], dirLine: [], line: ln };
       var vm = main.match(/^video\s*:\s*(.+)$/i);
       if (vm) {
         var pv = parseVideo(vm[1]);
@@ -171,10 +172,22 @@ var BAB = (function () {
     return out;
   }
 
+  // "Dana, Luis & Sam" <-> ["Dana", "Luis", "Sam"]
+  function splitNames(who) { return String(who || "").split(/\s*(?:,|&|\+|\band\b)\s*/i).map(function (x) { return x.trim(); }).filter(Boolean); }
+  function joinNames(list) { return list.length < 2 ? (list[0] || "") : list.length === 2 ? list[0] + " & " + list[1] : list.slice(0, -1).join(", ") + " & " + list[list.length - 1]; }
+  // Replace whatever follows "|" on one script line (keeps its indent and bullet).
+  function setLineWho(text, ln, names) {
+    var lines = String(text).split(/\r?\n/);
+    if (ln < 0 || ln >= lines.length) return text;
+    var raw = lines[ln], bar = raw.indexOf("|"), body = (bar === -1 ? raw : raw.slice(0, bar)).replace(/\s+$/, "");
+    lines[ln] = names.length ? body + " | " + joinNames(names) : body;
+    return lines.join("\n");
+  }
+
   function vkey(v) { return v ? v.id + "|" + (v.start || 0) + "|" + (v.end || "") : ""; }
 
   return {
     CHANNEL: CHANNEL, BUILD: BUILD, esc: esc, parse: parse, parseTime: parseTime, fmtTime: fmtTime,
-    ytParse: ytParse, parseCredits: parseCredits, buildSlides: buildSlides, slideView: slideView, vkey: vkey
+    splitNames: splitNames, joinNames: joinNames, setLineWho: setLineWho, ytParse: ytParse, parseCredits: parseCredits, buildSlides: buildSlides, slideView: slideView, vkey: vkey
   };
 })();
