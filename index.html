@@ -281,6 +281,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
         <p class="hint">Start a section with <code>## For Two Performers</code>. Its name shows under each prompt in that section.</p>
         <p class="hint"><b style="color:var(--chalk)">Video prompts:</b> start the line with <code>video:</code>, then the YouTube link, then an optional time range and caption:</p>
         <p class="hint"><code>video: https://youtu.be/abc123XYZ90 0:30-1:45 Dub this nature doc | Dana &amp; Luis</code></p>
+        <p class="hint">Add <code>vol:60</code> (or <code>60%</code>) after the link to set that clip's volume, e.g. <code>video: https://youtu.be/abc123XYZ90 vol:40 | Aaron</code>. Moving the console's video volume slider during the clip overrides it.</p>
         <p class="hint">The screen shows the prompt card first. Press Next to play the clip full screen, then Next again to move on. The time range is optional, and a <code>?t=</code> in the link also sets the start.</p>
         <p class="hint"><b style="color:var(--chalk)">Minigames:</b> start a section with <code>Minigame: It’s D’improv (Take Some Direction)</code>. The part in parentheses shows as a subtitle on the minigame card.</p>
         <p class="hint"><b style="color:var(--chalk)">Directions:</b> indent bullets under a line and each one becomes its own step. The line stays on screen, small, and each Next reveals the next direction. Add <code>| Name</code> after a direction to show whose turn it is.</p>
@@ -330,7 +331,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
           <span>MP3, WAV, M4A, AAC, OGG or FLAC</span>
           <label class="btn go">Choose files<input type="file" id="fileIn" multiple accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac" hidden></label>
         </div>
-        <p class="hint">Sounds are saved in this browser on this Mac, so you only add them once. If you switch browsers or computers, add them again there. The first 10 sounds get keys <kbd>1</kbd>–<kbd>0</kbd> and the next 10 get <kbd>⇧</kbd>+<kbd>1</kbd>–<kbd>0</kbd>. Use the arrows to reorder. <b style="color:var(--chalk)">Loop</b> sounds (like walk-in music) repeat until you press their key again, then fade out. Other sounds restart each time you press them.</p>
+        <p class="hint">Sounds are saved in this browser on this Mac, so you only add them once. If you switch browsers or computers, add them again there. The first 10 sounds get keys <kbd>1</kbd>–<kbd>0</kbd> and the next 10 get <kbd>⇧</kbd>+<kbd>1</kbd>–<kbd>0</kbd>. Use the arrows to reorder. <b style="color:var(--chalk)">Loop</b> sounds (like walk-in music) repeat until you stop them. Pressing a sound's key or pad while it's playing stops it.</p>
       </div>
       <ul class="slist" id="slist"></ul>
       <p class="empty" id="slistEmpty">No sounds added yet.</p>
@@ -697,7 +698,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   // ================= Video =================
   var vstat = {}, vvol = +(store.get("bab.vvol") || 1);
   $("vVol").value = vvol;
-  $("vVol").addEventListener("input", function () { vvol = +this.value; store.set("bab.vvol", this.value); post({ type: "vcmd", cmd: "vol", v: vvol }); });
+  $("vVol").addEventListener("input", function () { vvol = +this.value; store.set("bab.vvol", this.value); post({ type: "vcmd", cmd: "vol", v: vvol, user: true }); });
   $("vVol").addEventListener("change", function () { this.blur(); });
   // Play works from the prompt card too: it moves on to the video slide, which starts the clip.
   function videoPlay() {
@@ -725,6 +726,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     $("vThumb").src = "https://i.ytimg.com/vi/" + v.id + "/mqdefault.jpg";
     $("vTitle").textContent = p.text || "youtu.be/" + v.id;
     $("vRange").textContent = (v.start || v.end) ? "Plays " + BAB.fmtTime(v.start || 0) + (v.end ? " to " + BAB.fmtTime(v.end) : " to the end") : "Plays from the start";
+    if (v.vol != null) $("vRange").textContent += " · volume " + Math.round(v.vol * 100) + "% (from script)";
     $("vRestart").disabled = !pv.live;
     $("vPlay").innerHTML = pv.live ? "Play / pause <kbd>P</kbd>" : "▶ Play video <kbd>P</kbd>";
     paintVstat();
@@ -788,7 +790,8 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     unlockAudio();
     var a = act[snd.id];
     if (a && !a.fading) {
-      if (snd.loop && !forceRestart) { fadeOut(snd.id, 1.2); return; }
+      // Pressing a sound that's already playing stops it (loops fade out a little longer).
+      if (!forceRestart) { fadeOut(snd.id, snd.loop ? 1.2 : 0.15); return; }
       stopNow(snd.id);
     }
     var src = AC.createBufferSource(), g = AC.createGain();

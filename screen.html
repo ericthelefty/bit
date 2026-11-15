@@ -336,7 +336,7 @@ body.awake #lost.on { display: block; }
 
   // ---------------- YouTube (audience window only) ----------------
   var player = null, playerReady = false, apiAsked = false, apiFailed = false;
-  var mutedFallback = false, vvolume = 1;
+  var mutedFallback = false, vvolume = 1, volOverride = false;
   var loadedKey = "", loadedVid = null, onVideoSlide = false, wantPlay = false, ended = false, lastErr = "", wantSince = 0;
 
   function loadApi() {
@@ -379,8 +379,9 @@ body.awake #lost.on { display: block; }
       if (!onVideoSlide || loadedKey !== k) {
         // Entering the clip: start it from the top.
         ended = false; lastErr = ""; layer.classList.remove("done");
-        mutedFallback = false; if (player.isMuted && player.isMuted()) player.unMute();
+        mutedFallback = false; volOverride = false; if (player.isMuted && player.isMuted()) player.unMute();
         player.loadVideoById(params(v)); loadedKey = k; loadedVid = v; wantPlay = true; wantSince = Date.now();
+        applyVol();
       }
     } else {
       if (v && loadedKey !== k) { player.cueVideoById(params(v)); loadedKey = k; loadedVid = v; lastErr = ""; }
@@ -402,17 +403,19 @@ body.awake #lost.on { display: block; }
     } else if (m.cmd === "restart") {
       if (onVideoSlide) restart();
     } else if (m.cmd === "vol") {
-      vvolume = m.v; player.setVolume(Math.round(m.v * 100)); if (!mutedFallback) player.unMute();
+      vvolume = m.v; if (m.user) volOverride = true; applyVol(); if (!mutedFallback) player.unMute();
     }
     vstat();
   }
   document.addEventListener("click", function () {
     if (!isMain || !playerReady) return;
-    if (mutedFallback) { player.unMute(); player.setVolume(Math.round(vvolume * 100)); mutedFallback = false; }
+    if (mutedFallback) { player.unMute(); applyVol(); mutedFallback = false; }
     if (onVideoSlide && wantPlay) { var ps = player.getPlayerState(); if (ps !== 1 && ps !== 3) player.playVideo(); }
     vstat();
   });
-  function restart() { ended = false; lastErr = ""; $("vid").classList.remove("done"); player.loadVideoById(params(loadedVid)); wantPlay = true; wantSince = Date.now(); }
+  function restart() { ended = false; lastErr = ""; $("vid").classList.remove("done"); player.loadVideoById(params(loadedVid)); wantPlay = true; wantSince = Date.now(); applyVol(); }
+  // A volume set in the script wins until you move the console's video volume slider.
+  function applyVol() { var v = loadedVid && loadedVid.vol != null && !volOverride ? loadedVid.vol : vvolume; player.setVolume(Math.round(v * 100)); }
 
   function vstat() {
     if (!isMain) return;

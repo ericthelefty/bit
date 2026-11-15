@@ -1,7 +1,7 @@
 /* Build a Bit: shared helpers for the console (index.html) and the audience screen (screen.html). */
 var BAB = (function () {
   var CHANNEL = "build-a-bit";
-  var BUILD = "2026-11-15.7";   // bump on every change so an open audience window knows it is out of date
+  var BUILD = "2026-11-15.9";   // bump on every change so an open audience window knows it is out of date
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -76,10 +76,16 @@ var BAB = (function () {
     var yt = ytParse(toks.shift() || "");
     if (!yt) return null;
     var v = { id: yt.id, start: yt.start, end: null };
-    var tr = toks[0] && toks[0].match(/^([\dhms:]+)?-([\dhms:]+)?$|^([\dhms:]+)$/i);
-    if (tr) {
-      var a = parseTime(tr[1] || tr[3]), b = parseTime(tr[2]);
-      if (a != null || b != null) { toks.shift(); if (a != null) v.start = a; if (b != null) v.end = b; }
+    // Optional settings before the caption, in any order: a time range "0:30-1:45" and a volume "vol:60" (or "60%").
+    for (var guard = 0; guard < 2 && toks.length; guard++) {
+      var vm = toks[0].match(/^(?:vol(?:ume)?[:=]?(\d{1,3})%?|(\d{1,3})%)$/i);
+      if (vm) { v.vol = Math.max(0, Math.min(100, +(vm[1] || vm[2]))) / 100; toks.shift(); continue; }
+      var tr = toks[0].match(/^([\dhms:]+)?-([\dhms:]+)?$|^([\dhms:]+)$/i);
+      if (tr) {
+        var a = parseTime(tr[1] || tr[3]), b = parseTime(tr[2]);
+        if (a != null || b != null) { toks.shift(); if (a != null) v.start = a; if (b != null) v.end = b; continue; }
+      }
+      break;
     }
     return { video: v, caption: toks.join(" ") };
   }
