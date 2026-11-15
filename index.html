@@ -101,6 +101,8 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
 ol.list li.panel { grid-template-columns: 2em 1fr auto; align-items: start; }
 .asg { border: 1px solid var(--line); background: var(--panel); border-radius: 5px; padding: 3px 8px; font-size: 11.5px; font-weight: 800; letter-spacing: .04em; color: var(--dim); cursor: pointer; white-space: nowrap; }
 .asg:hover { color: var(--bulb); border-color: var(--bulb); }
+.sfx { display: inline-block; font-size: 11px; font-weight: 800; color: #1a1408; background: var(--bulb); border-radius: 4px; padding: 0 6px; vertical-align: 1px; }
+.sfx.missing { background: transparent; color: #ff8a98; border: 1px dashed #ff8a98; }
 .who { display: inline-block; margin-top: 4px; font-size: 11.5px; font-weight: 800; letter-spacing: .03em; color: var(--chalk); background: var(--curtain); border-radius: 99px; padding: 1px 8px; }
 .dirs { grid-column: 1 / -1; list-style: none; margin: 6px 0 0; padding: 0 0 0 1.4em; display: grid; gap: 4px; }
 ol.list .dirs li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: start; padding: 5px 7px; border-radius: 5px; background: var(--panel); border-left: 2px solid var(--line); font-size: 12.5px; cursor: pointer; }
@@ -286,6 +288,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
         <p class="hint"><b style="color:var(--chalk)">Minigames:</b> start a section with <code>Minigame: It’s D’improv (Take Some Direction)</code>. The part in parentheses shows as a subtitle on the minigame card.</p>
         <p class="hint"><b style="color:var(--chalk)">Directions:</b> indent bullets under a line and each one becomes its own step. The line stays on screen, small, and each Next reveals the next direction. Add <code>| Name</code> after a direction to show whose turn it is.</p>
         <p class="hint"><code>* “That’s what she said.”</code><br><code>&nbsp;&nbsp;&nbsp;* Italian.</code><br><code>&nbsp;&nbsp;&nbsp;* More Italian.</code></p>
+        <p class="hint"><b style="color:var(--chalk)">Sound for a card:</b> add <code>[sfx: Air horn]</code> anywhere on a line (a prompt, a direction, a video line or a section heading) and that sound plays when the card comes up. Use the sound's name from the Sounds tab, or its pad number like <code>[sfx: 3]</code>. It plays instead of the "new prompt" sound.</p>
         <p class="hint">Bullets are stripped, blank lines are skipped, and lines starting with a single <code>#</code> are notes that never show.</p>
         <div id="warns" class="warnbox" hidden></div>
         <span class="lbl" style="margin-top:6px">Options</span>
@@ -430,6 +433,11 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     w.innerHTML = bad.map(function (p) { return "Couldn't read the YouTube link in: <code>" + esc(p.text) + "</code>"; }).join("<br>");
   }
 
+  function sfxTag(ref) {
+    if (!ref) return "";
+    var ok = !soundsLoaded || !!soundByRef(ref);
+    return ' <span class="sfx' + (ok ? '' : ' missing') + '" title="' + (ok ? 'Plays when this card comes up' : 'No sound with this name on the Sounds tab') + '">♪ ' + esc(ref) + '</span>';
+  }
   function whoTags(who) {
     var n = BAB.splitNames(who);
     return n.length ? '<br>' + n.map(function (x) { return '<span class="who">' + esc(x) + '</span>'; }).join(" ") : "";
@@ -441,14 +449,14 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     var last = null;
     ol.innerHTML = prompts.map(function (p, i) {
       var h = "";
-      if (p.sec !== last) { last = p.sec; if (p.sec) h = '<div class="sechd" data-first="' + i + '" tabindex="0" title="Show this section\u2019s title card">' + (p.secKind === "minigame" ? '<span class="v" style="background:var(--curtain);color:var(--chalk)">MINIGAME</span>' : "") + esc(p.sec) + '</div>'; }
+      if (p.sec !== last) { last = p.sec; if (p.sec) h = '<div class="sechd" data-first="' + i + '" tabindex="0" title="Show this section\u2019s title card">' + (p.secKind === "minigame" ? '<span class="v" style="background:var(--curtain);color:var(--chalk)">MINIGAME</span>' : "") + esc(p.sec) + sfxTag(p.secSfx) + '</div>'; }
       var hasDirs = p.dirs.length > 0;
       var dirs = hasDirs ? '<ol class="dirs">' + p.dirs.map(function (d, k) {
-        return '<li data-i="' + i + '" data-d="' + k + '"><span>' + esc(d) + whoTags(p.dirWho[k]) + '</span>' +
+        return '<li data-i="' + i + '" data-d="' + k + '"><span>' + esc(d) + sfxTag(p.dirSfx[k]) + whoTags(p.dirWho[k]) + '</span>' +
           '<button class="asg" type="button" data-line="' + p.dirLine[k] + '" data-who="' + esc(p.dirWho[k] || "") + '" data-label="' + esc(d) + '">Assign</button></li>';
       }).join("") + '</ol>' : "";
       return h + '<li data-i="' + i + '" class="panel' + (p.bad ? " bad" : "") + '"><span class="n">' + (i + 1) + '</span><span>' +
-        (p.video ? '<span class="v">VIDEO</span>' : "") + esc(p.text || (p.video ? "(no caption)" : "")) +
+        (p.video ? '<span class="v">VIDEO</span>' : "") + esc(p.text || (p.video ? "(no caption)" : "")) + sfxTag(p.sfx) +
         whoTags(p.who) +
         (p.bad ? '<span class="err">' + esc(p.bad) + '</span>' : "") + '</span>' +
         (hasDirs ? '<span></span>' : '<button class="asg" type="button" data-line="' + p.line + '" data-who="' + esc(p.who || "") + '" data-label="' + esc(p.text || "Video") + '">Assign</button>') +
@@ -479,7 +487,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   }
   function scrollNow() { var li = document.querySelector("#list .dirs li.now") || document.querySelector("#list li.panel.now"); if (li) li.scrollIntoView({ block: "nearest" }); }
   function jumpToSection(first) {
-    for (var k = 0; k < slides.length; k++) if (slides[k].i === first) { jump(k > 0 && slides[k - 1].t === "sec" ? k - 1 : k); return; }
+    for (var k = 0; k < slides.length; k++) if (slides[k].i === first) { var t = k > 0 && slides[k - 1].t === "sec" ? k - 1 : k; jump(t); cardSound(slides[t]); return; }
   }
   $("list").addEventListener("keydown", function (e) {
     var h = e.target.closest(".sechd[data-first]");
@@ -491,10 +499,10 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     var hd = e.target.closest(".sechd[data-first]");
     if (hd) { jumpToSection(+hd.dataset.first); return; }
     var dl = e.target.closest(".dirs li[data-d]");
-    if (dl) { var di = +dl.dataset.i, dd = +dl.dataset.d; for (var q = 0; q < slides.length; q++) if (slides[q].t === "dir" && slides[q].i === di && slides[q].d === dd) { jump(q); break; } return; }
+    if (dl) { var di = +dl.dataset.i, dd = +dl.dataset.d; for (var q = 0; q < slides.length; q++) if (slides[q].t === "dir" && slides[q].i === di && slides[q].d === dd) { jump(q); cardSound(slides[q]); break; } return; }
     var li = e.target.closest("li[data-i]"); if (!li) return;
     var i = +li.dataset.i;
-    for (var k = 0; k < slides.length; k++) if (slides[k].i === i) { jump(k); if (slides[k].t === "prompt") promptSound(); break; }
+    for (var k = 0; k < slides.length; k++) if (slides[k].i === i) { jump(k); cardSound(slides[k]); break; }
   });
 
   // ================= Performers & assignments =================
@@ -621,7 +629,20 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     var n = Math.max(0, Math.min(slides.length - 1, idx + d));
     if (n === idx) return;
     idx = n; update();
-    if (d > 0 && slides[idx].t === "prompt") promptSound();
+    if (d > 0) cardSound(slides[idx]);
+  }
+  // A card's own [sfx: ...] wins; otherwise new prompts get the "new prompt" sound.
+  function cardSound(s) {
+    if (!s) return;
+    if (s.sfx) { var snd = soundByRef(s.sfx); if (snd) { playSound(snd, true); return; } }
+    if (s.t === "prompt") promptSound();
+  }
+  function soundByRef(ref) {
+    var r = String(ref).trim().toLowerCase(), n = r.replace(/^#/, "");
+    for (var i = 0; i < sounds.length; i++) if (sounds[i].name.toLowerCase() === r) return sounds[i];
+    if (/^\d+$/.test(n)) return sounds[+n - 1] || null;               // [sfx: 3] = pad 3
+    for (var j = 0; j < sounds.length; j++) if (sounds[j].name.toLowerCase().indexOf(r) === 0) return sounds[j];
+    return null;
   }
   function jump(k) { idx = Math.max(0, Math.min(slides.length - 1, k)); update(); }
   function toggleDark() { dark = !dark; update(); }
@@ -854,6 +875,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     }).join("");
     $("padsEmpty").hidden = !!sounds.length;
     paintPads(); paintAudio();
+    if (prompts.length) { var y = $("list").scrollTop; renderList(); $("list").scrollTop = y; }   // refresh ♪ tags
     // prompt-sound picker
     var cur = store.get("bab.psound") || "";
     psound.innerHTML = '<option value="">None</option>' + sounds.map(function (s) { return '<option value="' + s.id + '">' + esc(s.name) + '</option>'; }).join("");

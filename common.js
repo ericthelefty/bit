@@ -1,7 +1,7 @@
 /* Build a Bit: shared helpers for the console (index.html) and the audience screen (screen.html). */
 var BAB = (function () {
   var CHANNEL = "build-a-bit";
-  var BUILD = "2026-11-15.14";   // bump on every change so an open audience window knows it is out of date
+  var BUILD = "2026-11-15.15";   // bump on every change so an open audience window knows it is out of date
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -90,13 +90,17 @@ var BAB = (function () {
     return { video: v, caption: toks.join(" ") };
   }
 
+  var SFX_TAG = /\s*\[\s*(?:sfx|sound)\s*:\s*([^\]]+)\]/gi;
   var BULLET = /^([*\-•–◦▪·]|\d+[.)])\s+/;
   function parse(text) {
     var sec = { name: "", sub: "", kind: "" }, out = [], lastP = null;
     String(text || "").split(/\r?\n/).forEach(function (raw, ln) {
+      // [sfx: Air horn] anywhere on a line plays that sound when its card comes up.
+      var sfx = "";
+      raw = raw.replace(SFX_TAG, function (m, name) { sfx = name.trim(); return ""; });
       var l = raw.trim();
       if (!l) return;
-      if (isSection(l)) { sec = sectionInfo(l); lastP = null; return; }
+      if (isSection(l)) { sec = sectionInfo(l); sec.sfx = sfx; lastP = null; return; }
       if (l.charAt(0) === "#") return;
       // An indented bullet under a line is a direction for that line.
       var indented = /^(\s{2,}|\t)/.test(raw) && BULLET.test(l);
@@ -107,12 +111,13 @@ var BAB = (function () {
         lastP.dirs.push(bar === -1 ? l : l.slice(0, bar).trim());
         lastP.dirWho.push(bar === -1 ? "" : l.slice(bar + 1).trim());
         lastP.dirLine.push(ln);
+        lastP.dirSfx.push(sfx);
         return;
       }
       var i = l.indexOf("|");
       var main = i === -1 ? l : l.slice(0, i).trim(), who = i === -1 ? "" : l.slice(i + 1).trim();
       main = main.replace(/^(["“”])["“”]+/, "$1");           // tidy a doubled opening quote
-      var p = { text: main, who: who, sec: sec.name, secSub: sec.sub, secKind: sec.kind, secArt: sec.art, video: null, dirs: [], dirWho: [], dirLine: [], line: ln };
+      var p = { text: main, who: who, sec: sec.name, secSub: sec.sub, secKind: sec.kind, secArt: sec.art, video: null, dirs: [], dirWho: [], dirLine: [], dirSfx: [], line: ln, sfx: sfx, secSfx: sec.sfx || "" };
       var vm = main.match(/^video\s*:\s*(.+)$/i);
       if (vm) {
         var pv = parseVideo(vm[1]);
@@ -132,12 +137,12 @@ var BAB = (function () {
   function buildSlides(prompts, opts) {
     var slides = [{ t: "title" }], last = null;
     prompts.forEach(function (p, i) {
-      if (p.sec && p.sec !== last && opts.showSec) slides.push({ t: "sec", sec: p.sec, sub: p.secSub, kind: p.secKind, art: p.secArt });
+      if (p.sec && p.sec !== last && opts.showSec) slides.push({ t: "sec", sec: p.sec, sub: p.secSub, kind: p.secKind, art: p.secArt, sfx: p.secSfx });
       last = p.sec;
       if (opts.numCard) slides.push({ t: "num", i: i });
-      slides.push({ t: "prompt", i: i });
+      slides.push({ t: "prompt", i: i, sfx: p.sfx });
       if (p.video) slides.push({ t: "video", i: i });
-      p.dirs.forEach(function (_, d) { slides.push({ t: "dir", i: i, d: d }); });
+      p.dirs.forEach(function (_, d) { slides.push({ t: "dir", i: i, d: d, sfx: p.dirSfx[d] }); });
     });
     slides.push({ t: "end" });
     if (opts.credits) slides.push({ t: "credits" });
@@ -185,7 +190,9 @@ var BAB = (function () {
   function setLineWho(text, ln, names) {
     var lines = String(text).split(/\r?\n/);
     if (ln < 0 || ln >= lines.length) return text;
-    var raw = lines[ln], bar = raw.indexOf("|"), body = (bar === -1 ? raw : raw.slice(0, bar)).replace(/\s+$/, "");
+    var tags = lines[ln].match(SFX_TAG) || [];            // keep any [sfx: ...] tags
+    var raw = lines[ln].replace(SFX_TAG, ""), bar = raw.indexOf("|"), body = (bar === -1 ? raw : raw.slice(0, bar)).replace(/\s+$/, "");
+    if (tags.length) body += " " + tags.map(function (t) { return t.trim(); }).join(" ");
     lines[ln] = names.length ? body + " | " + joinNames(names) : body;
     return lines.join("\n");
   }
