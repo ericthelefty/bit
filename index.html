@@ -311,6 +311,22 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
       </div>
       <ul class="slist" id="slist"></ul>
       <p class="empty" id="slistEmpty">No sounds added yet.</p>
+      <div id="trimModal" hidden style="position:fixed;inset:0;z-index:60;background:rgba(10,9,14,.78);display:grid;place-items:center;padding:20px">
+        <div class="card" style="width:min(980px,100%);gap:14px">
+          <div class="row" style="justify-content:space-between"><span class="lbl">Trim: <span id="trimName" style="color:var(--chalk);text-transform:none;letter-spacing:0"></span></span><span class="hint" id="trimLen"></span></div>
+          <canvas id="trimCanvas" width="1880" height="300" style="width:100%;height:150px;background:var(--house);border:1px solid var(--line);border-radius:8px;cursor:ew-resize;touch-action:none"></canvas>
+          <p class="hint" style="margin:0">Drag the gold handles to set where the sound starts and ends. The original file isn't changed, so you can always reset.</p>
+          <div class="row">
+            <label class="row" style="gap:6px;font-size:13px;color:var(--dim)">Start <input type="number" id="trimA" step="0.01" min="0" style="width:90px;background:var(--house);border:1px solid var(--line);border-radius:6px;padding:6px 8px"> s</label>
+            <label class="row" style="gap:6px;font-size:13px;color:var(--dim)">End <input type="number" id="trimB" step="0.01" min="0" style="width:90px;background:var(--house);border:1px solid var(--line);border-radius:6px;padding:6px 8px"> s</label>
+            <button class="btn" type="button" id="trimPlay">▶ Play trimmed</button>
+            <button class="btn" type="button" id="trimReset">Reset</button>
+            <span style="flex:1"></span>
+            <button class="btn" type="button" id="trimCancel">Cancel</button>
+            <button class="btn go" type="button" id="trimSave">Save trim</button>
+          </div>
+        </div>
+      </div>
       <div class="row" id="slistTools" hidden><button class="btn danger" type="button" id="delAll">Delete all sounds</button></div>
       <div class="warnbox" id="undoBar" hidden style="position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:40;display:flex;gap:14px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.5);background:#2a2538"><span id="undoMsg"></span><button class="btn go" type="button" id="undoBtn">Undo</button></div>
     </div>
@@ -665,6 +681,13 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
 
   function keyLabel(i) { return i < 10 ? String((i + 1) % 10) : i < 20 ? "⇧" + ((i - 9) % 10) : ""; }
 
+  // Trim is stored as start/end seconds; the original file is never changed.
+  function trimOf(snd) {
+    var d = snd.buffer ? snd.buffer.duration : 0;
+    var a = Math.max(0, Math.min(d, snd.trimStart || 0)), b = snd.trimEnd ? Math.min(d, snd.trimEnd) : d;
+    if (b - a < 0.02) { a = 0; b = d; }
+    return { a: a, b: b, d: d };
+  }
   function playSound(snd, forceRestart) {
     if (!AC || !snd || !snd.buffer) return;
     unlockAudio();
@@ -674,9 +697,16 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
       stopNow(snd.id);
     }
     var src = AC.createBufferSource(), g = AC.createGain();
+    var tr = trimOf(snd);
     src.buffer = snd.buffer; src.loop = !!snd.loop; g.gain.value = snd.vol;
-    src.connect(g); g.connect(master); src.start();
-    var rec = { src: src, g: g, t0: AC.currentTime, dur: snd.buffer.duration, fading: false };
+    src.connect(g); g.connect(master);
+    if (snd.loop) { src.loopStart = tr.a; src.loopEnd = tr.b; src.start(0, tr.a); }
+    else {
+      src.start(0, tr.a, tr.b - tr.a);
+      // short fade at a trimmed end so it doesn't click
+      if (tr.b < tr.d) { var te = AC.currentTime + (tr.b - tr.a); g.gain.setValueAtTime(snd.vol, Math.max(AC.currentTime, te - 0.03)); g.gain.linearRampToValueAtTime(0, te); }
+    }
+    var rec = { src: src, g: g, t0: AC.currentTime, dur: tr.b - tr.a, fading: false };
     act[snd.id] = rec;
     src.onended = function () { if (act[snd.id] === rec) delete act[snd.id]; paintPads(); };
     var el = document.querySelector('.pad[data-id="' + snd.id + '"]');
@@ -754,7 +784,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
       });
     });
   }
-  function rec(s) { return { id: s.id, name: s.name, vol: s.vol, loop: s.loop, order: s.order, blob: s.blob }; }
+  function rec(s) { return { id: s.id, name: s.name, vol: s.vol, loop: s.loop, order: s.order, blob: s.blob, trimStart: s.trimStart || 0, trimEnd: s.trimEnd || 0 }; }
   function saveSound(s) { return dbDo("readwrite", function (st) { return st.put(rec(s)); }); }
   function decode(blob) {
     return blob.arrayBuffer().then(function (buf) {
@@ -804,6 +834,10 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
   // Re-render the list at most once per moment, so loading many sounds doesn't keep redrawing it under your mouse.
   var slistT = null;
   function slistSoon() { clearTimeout(slistT); slistT = setTimeout(function () { if (!document.activeElement || !document.activeElement.closest || !document.activeElement.closest("#slist")) renderSlist(); else slistSoon(); }, 300); }
+  function durLabel(s) {
+    var t = trimOf(s), len = t.b - t.a, txt = len < 10 ? len.toFixed(1) + "s" : BAB.fmtTime(len);
+    return (t.a > 0 || t.b < t.d) ? "✂ " + txt + " of " + (t.d < 10 ? t.d.toFixed(1) + "s" : BAB.fmtTime(t.d)) : txt;
+  }
   function renderSlist() {
     $("slistEmpty").hidden = !!sounds.length;
     $("slistTools").hidden = !sounds.length;
@@ -812,10 +846,10 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
       return '<li data-id="' + s.id + '">' +
         '<span class="key' + (k ? "" : " none") + '">' + (k || "no key") + '</span>' +
         '<div style="display:grid;gap:4px;min-width:0"><input type="text" data-f="name" value="' + esc(s.name) + '" aria-label="Sound name">' +
-        '<span class="dur">' + (s.broken ? '<span style="color:#ff8a98">Couldn’t read this file</span>' : s.buffer ? BAB.fmtTime(s.buffer.duration) + (s.buffer.duration < 10 ? " (" + s.buffer.duration.toFixed(1) + "s)" : "") : "Loading…") + '</span></div>' +
+        '<span class="dur">' + (s.broken ? '<span style="color:#ff8a98">Couldn’t read this file</span>' : s.buffer ? durLabel(s) : "Loading…") + '</span></div>' +
         '<label class="vol">Vol <input type="range" data-f="vol" min="0" max="1.5" step="0.05" value="' + s.vol + '"></label>' +
         '<label class="check" style="font-size:13px"><input type="checkbox" data-f="loop"' + (s.loop ? " checked" : "") + '> Loop</label>' +
-        '<button class="btn mini" type="button" data-a="play">▶ Test</button>' +
+        '<div class="row" style="gap:4px;flex-wrap:nowrap"><button class="btn mini" type="button" data-a="play">▶ Test</button><button class="btn mini" type="button" data-a="trim"' + (s.buffer ? "" : " disabled") + '>✂ Trim</button></div>' +
         '<div class="row" style="gap:4px;flex-wrap:nowrap"><button class="btn mini" type="button" data-a="up" aria-label="Move up"' + (i === 0 ? " disabled" : "") + '>↑</button><button class="btn mini" type="button" data-a="down" aria-label="Move down"' + (i === sounds.length - 1 ? " disabled" : "") + '>↓</button><button class="btn mini danger" type="button" data-a="del">Delete</button></div>' +
         '</li>';
     }).join("");
@@ -830,6 +864,78 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     clearTimeout(renderSlist._t); renderSlist._t = setTimeout(renderPads, 250);
   });
   $("slist").addEventListener("change", function (e) { if (e.target.type === "range" || e.target.type === "checkbox") e.target.blur(); });
+  // ---- Trim editor ----
+  var trimSnd = null, trimA = 0, trimB = 0, trimPeaks = null, trimSrc = null, trimT0 = 0, trimDrag = null, trimRaf = 0;
+  function openTrim(s) {
+    if (!s.buffer) return;
+    trimSnd = s; var t = trimOf(s); trimA = t.a; trimB = t.b;
+    // peaks for the waveform
+    var cv = $("trimCanvas"), W = cv.width, data = s.buffer.getChannelData(0), step = Math.max(1, Math.floor(data.length / W));
+    trimPeaks = new Float32Array(W);
+    for (var x = 0; x < W; x++) { var m = 0, o = x * step; for (var k = 0; k < step; k++) { var v = Math.abs(data[o + k] || 0); if (v > m) m = v; } trimPeaks[x] = m; }
+    $("trimName").textContent = s.name;
+    $("trimModal").hidden = false; drawTrim(); syncTrimInputs();
+  }
+  function closeTrim() { stopTrimPreview(); $("trimModal").hidden = true; trimSnd = null; }
+  function syncTrimInputs() {
+    $("trimA").value = trimA.toFixed(2); $("trimB").value = trimB.toFixed(2);
+    $("trimA").max = $("trimB").max = trimSnd.buffer.duration.toFixed(2);
+    var len = trimB - trimA; $("trimLen").textContent = "Plays " + (len < 10 ? len.toFixed(2) + "s" : BAB.fmtTime(len)) + " of " + trimSnd.buffer.duration.toFixed(2) + "s";
+  }
+  function drawTrim(playT) {
+    var cv = $("trimCanvas"), c = cv.getContext("2d"), W = cv.width, H = cv.height, d = trimSnd.buffer.duration;
+    var xa = trimA / d * W, xb = trimB / d * W, peak = 0;
+    for (var i = 0; i < trimPeaks.length; i++) if (trimPeaks[i] > peak) peak = trimPeaks[i];
+    var sc = peak > 0 ? (H * 0.46) / peak : 1;
+    c.clearRect(0, 0, W, H);
+    for (var x = 0; x < W; x++) {
+      var h = Math.max(1, trimPeaks[x] * sc);
+      c.fillStyle = x >= xa && x <= xb ? "#ffbe3d" : "#4a4560";
+      c.fillRect(x, H / 2 - h, 1, h * 2);
+    }
+    c.fillStyle = "rgba(10,9,14,.55)"; c.fillRect(0, 0, xa, H); c.fillRect(xb, 0, W - xb, H);
+    [xa, xb].forEach(function (x, n) {
+      c.fillStyle = "#ffbe3d"; c.fillRect(x - 3, 0, 6, H);
+      c.beginPath(); var y = n ? H - 2 : 2; c.moveTo(x - 16, y); c.lineTo(x + 16, y); c.lineTo(x, n ? H - 26 : 26); c.closePath(); c.fill();
+    });
+    if (playT != null) { var xp = playT / d * W; c.fillStyle = "#f4efe4"; c.fillRect(xp - 1.5, 0, 3, H); }
+  }
+  function trimX(e) { var cv = $("trimCanvas"), r = cv.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * trimSnd.buffer.duration; }
+  $("trimCanvas").addEventListener("pointerdown", function (e) {
+    if (!trimSnd) return;
+    var t = trimX(e); trimDrag = Math.abs(t - trimA) <= Math.abs(t - trimB) ? "a" : "b";
+    this.setPointerCapture(e.pointerId); moveHandle(t);
+  });
+  $("trimCanvas").addEventListener("pointermove", function (e) { if (trimDrag) moveHandle(trimX(e)); });
+  $("trimCanvas").addEventListener("pointerup", function () { trimDrag = null; });
+  function moveHandle(t) {
+    var minLen = 0.05;
+    if (trimDrag === "a") trimA = Math.max(0, Math.min(t, trimB - minLen));
+    else trimB = Math.min(trimSnd.buffer.duration, Math.max(t, trimA + minLen));
+    drawTrim(); syncTrimInputs();
+  }
+  $("trimA").addEventListener("change", function () { var v = parseFloat(this.value); if (!isNaN(v)) { trimA = Math.max(0, Math.min(v, trimB - 0.05)); } drawTrim(); syncTrimInputs(); });
+  $("trimB").addEventListener("change", function () { var v = parseFloat(this.value); if (!isNaN(v)) { trimB = Math.min(trimSnd.buffer.duration, Math.max(v, trimA + 0.05)); } drawTrim(); syncTrimInputs(); });
+  function stopTrimPreview() { if (trimSrc) { try { trimSrc.stop(); } catch (e) {} trimSrc = null; } cancelAnimationFrame(trimRaf); $("trimPlay").textContent = "▶ Play trimmed"; if (trimSnd) drawTrim(); }
+  $("trimPlay").onclick = function () {
+    if (trimSrc) { stopTrimPreview(); return; }
+    unlockAudio();
+    var src = AC.createBufferSource(), g = AC.createGain(); src.buffer = trimSnd.buffer; g.gain.value = trimSnd.vol;
+    src.connect(g); g.connect(master); src.start(0, trimA, trimB - trimA); trimSrc = src; trimT0 = AC.currentTime;
+    this.textContent = "■ Stop";
+    src.onended = function () { if (trimSrc === src) stopTrimPreview(); };
+    (function anim() { if (trimSrc !== src) return; drawTrim(trimA + (AC.currentTime - trimT0)); trimRaf = requestAnimationFrame(anim); })();
+  };
+  $("trimReset").onclick = function () { trimA = 0; trimB = trimSnd.buffer.duration; drawTrim(); syncTrimInputs(); };
+  $("trimCancel").onclick = closeTrim;
+  $("trimSave").onclick = function () {
+    var d = trimSnd.buffer.duration;
+    trimSnd.trimStart = trimA > 0.005 ? +trimA.toFixed(3) : 0;
+    trimSnd.trimEnd = trimB < d - 0.005 ? +trimB.toFixed(3) : 0;
+    saveSound(trimSnd); closeTrim(); renderSlist();
+  };
+  $("trimModal").addEventListener("click", function (e) { if (e.target === this) closeTrim(); });
+
   // Delete right away, with an Undo button for a few seconds.
   var undoState = null, undoT = null;
   function deleteSounds(list) {
@@ -863,6 +969,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     var b = e.target.closest("button[data-a]"); if (!b) return;
     var li = b.closest("li[data-id]"), s = byId(li.dataset.id), i = sounds.indexOf(s);
     if (b.dataset.a === "play") playSound(s);
+    else if (b.dataset.a === "trim") openTrim(s);
     else if (b.dataset.a === "up" || b.dataset.a === "down") {
       var j = b.dataset.a === "up" ? i - 1 : i + 1; if (j < 0 || j >= sounds.length) return;
       sounds[i] = sounds[j]; sounds[j] = s;
@@ -899,6 +1006,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     return t === "textarea" || t === "select" || (t === "input" && /^(text|search|number|email|url)$/.test(el.type)) || (el && el.isContentEditable);
   }
   document.addEventListener("keydown", function (e) {
+    if (!$("trimModal").hidden) { if (e.key === "Escape") closeTrim(); return; }
     if (typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.target.tagName === "INPUT" && e.target.type === "range" && /Arrow|Page|Home|End/.test(e.key)) return;
     if (handleKey({ key: e.key, code: e.code, shift: e.shiftKey })) e.preventDefault();
