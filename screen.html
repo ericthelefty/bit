@@ -6,7 +6,9 @@
 <title>Build a Bit · Audience screen</title>
 <link rel="icon" href="favicon.png">
 <link rel="preload" as="image" href="logo.png">
-<link rel="preload" as="image" href="art/the-build-a-bit-show.png">
+<link rel="preload" as="image" href="art/show-the.png">
+<link rel="preload" as="image" href="art/show-build.png">
+<link rel="preload" as="image" href="art/show-show.png">
 <link rel="preload" as="image" href="art/its-dimprov.png">
 <link rel="preload" as="image" href="art/would-you-look-at-that.png">
 <link rel="preload" as="image" href="art/produce-a-ruckus.png">
@@ -55,6 +57,25 @@ body.awake { cursor: default; }
 }
 @media (prefers-reduced-motion: reduce) { .sparkle { animation: none; opacity: .8; transform: scale(.7); } }
 .names { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.6vmin; max-width: 100%; }
+.showart { --w: min(70vw, 118vmin); width: var(--w); display: flex; flex-direction: column; align-items: center; filter: drop-shadow(0 1.2vmin 2.4vmin rgba(0,0,0,.55)); }
+.showart.sa-welcome { --w: min(68vw, 112vmin); margin-bottom: 6vh; }
+.showart.sa-end { --w: min(58vw, 98vmin); }
+.showart img { display: block; position: relative; }
+.sa-the { width: calc(var(--w) * .126); transform: translateX(calc(var(--w) * .022)); z-index: 1; }
+.sa-build { width: var(--w); margin: calc(var(--w) * -.022) 0; z-index: 2; transform-origin: 50% 60%; }
+.sa-show { width: calc(var(--w) * .169); transform: translateX(calc(var(--w) * .023)); z-index: 1; }
+.sa-build.wiggle { animation: wiggle 1s cubic-bezier(.3,.7,.4,1) .25s both; }
+@keyframes wiggle {
+  0% { opacity: 0; transform: scale(.82) rotate(0deg); }
+  14% { opacity: 1; transform: scale(1.07) rotate(-4deg); }
+  28% { transform: scale(1.02) rotate(4deg); }
+  42% { transform: scale(1) rotate(-3deg); }
+  56% { transform: rotate(2.2deg); }
+  70% { transform: rotate(-1.4deg); }
+  84% { transform: rotate(.7deg); }
+  100% { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .sa-build.wiggle { animation: none; } }
 .big-title.mg { font-size: 12vmin; max-width: 100%; }
 .mg-sub { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 5vmin; color: var(--chalk); background: var(--curtain); padding: .25em .9em .2em; border-radius: 1.4vmin; transform: rotate(-1.5deg); }
 .mg-art { display: block; width: min(84vw, 150vmin); max-height: 46vh; object-fit: contain; filter: drop-shadow(0 1.2vmin 2.4vmin rgba(0,0,0,.55)); }
@@ -161,6 +182,13 @@ body.awake #lost.on { display: block; }
     el.style.fontSize = best + "px";
   }
 
+  // "The Build a Bit Show" built from three cutout rows so BUILD A BIT can overlap THE and SHOW and wiggle on its own.
+  function showArt(cls, wiggle) {
+    return '<div class="showart ' + cls + (wiggle ? ' enter' : '') + '" role="img" aria-label="The Build a Bit Show">' +
+      '<img class="sa-the" src="art/show-the.png" alt="">' +
+      '<img class="sa-build' + (wiggle ? ' wiggle' : '') + '" src="art/show-build.png" alt="">' +
+      '<img class="sa-show" src="art/show-show.png" alt=""></div>';
+  }
   // Each performer gets their own red oval; with no names, the section name shows in one oval.
   function namesHtml(who, fallback) {
     var names = BAB.splitNames(who);
@@ -171,7 +199,7 @@ body.awake #lost.on { display: block; }
     var sub = st.name && !/^build a bit$/i.test(st.name) ? st.name : "";
     var logo = '<img class="logo enter" src="logo.png" alt="Build a Bit">';
     if (!s) return '<div class="sub">End of the show</div>';
-    if (s.t === "title") return '<div class="welcome enter">Welcome to</div><div class="sparkle-wrap" id="sparkles"><img class="logo welcome-art enter" src="art/the-build-a-bit-show.png" alt="The Build a Bit Show"></div>' + (sub ? '<div class="sub enter">' + esc(sub) + '</div>' : '') + '<div class="first-ever enter">The first one ever!</div>';
+    if (s.t === "title") return '<div class="welcome enter">Welcome to</div><div class="sparkle-wrap" id="sparkles">' + showArt("sa-welcome", true) + '</div>' + (sub ? '<div class="sub enter">' + esc(sub) + '</div>' : '') + '<div class="first-ever enter">The first one ever!</div>';
     if (s.t === "sec") {
       if (s.kind === "minigame" && s.art) {
         // Words before the last comma ("It's Not Delivery,") lead into the title art.
@@ -199,7 +227,7 @@ body.awake #lost.on { display: block; }
       return h;
     }
     if (s.t === "video") return "";
-    return '<div class="big-title enter">Thanks for coming!</div><img class="logo small show-art enter" src="art/the-build-a-bit-show.png" alt="The Build a Bit Show">' + (sub ? '<div class="sub enter">' + esc(sub) + '</div>' : '');
+    return '<div class="big-title enter">Thanks for coming!</div>' + showArt("sa-end", true) + '' + (sub ? '<div class="sub enter">' + esc(sub) + '</div>' : '');
   }
 
   function render(st) {
@@ -316,7 +344,7 @@ body.awake #lost.on { display: block; }
       if (it.k === "h") return '<div class="cr-h' + g + '">' + esc(it.text) + '</div>';
       if (it.k === "row") return '<div class="cr-row' + g + '"><span class="r">' + esc(it.role) + '</span><span class="n">' + esc(it.name) + '</span></div>';
       return '<div class="cr-name' + g + '">' + esc(it.text) + '</div>';
-    }).join("") + '<div class="cr-end"><img class="logo small show-art" id="crLogo" src="art/the-build-a-bit-show.png" alt="The Build a Bit Show"></div>';
+    }).join("") + '<div class="cr-end">' + showArt("sa-end", false) + '</div>';
   }
   function rollTick() {
     if (!credOn) { rafOn = false; return; }
