@@ -1,7 +1,7 @@
 /* Build a Bit: shared helpers for the console (index.html) and the audience screen (screen.html). */
 var BAB = (function () {
   var CHANNEL = "build-a-bit";
-  var BUILD = "2026-11-15.18";   // bump on every change so an open audience window knows it is out of date
+  var BUILD = "2026-11-15.19";   // bump on every change so an open audience window knows it is out of date
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -22,6 +22,16 @@ var BAB = (function () {
     { match: /^for (two|2) performers?/i, src: "art/two-performers.png", alt: "Two Performers" },
     { match: /^for (three|3) performers?/i, src: "art/three-performers.png", alt: "Three Performers" }
   ];
+  // Cut-out name art for performers, matched on the name in the performer list.
+  var PERFORMER_ART = [
+    { match: /aaron|ketzenberger/i, src: "art/perf-aaron.png" },
+    { match: /alisa|patten/i, src: "art/perf-alisa.png" },
+    { match: /rick|toledo/i, src: "art/perf-rick.png" }
+  ];
+  function performerArt(name) {
+    for (var i = 0; i < PERFORMER_ART.length; i++) if (PERFORMER_ART[i].match.test(name)) return PERFORMER_ART[i].src;
+    return "";
+  }
   function artFor(name) {
     for (var i = 0; i < MINIGAME_ART.length; i++) if (MINIGAME_ART[i].match.test(name)) return MINIGAME_ART[i];
     return null;
@@ -136,6 +146,7 @@ var BAB = (function () {
   // opts: { numCard, showSec }
   function buildSlides(prompts, opts) {
     var slides = [{ t: "title" }], last = null;
+    for (var m = 1; m <= (opts.meet || 0); m++) slides.push({ t: "meet", n: m });   // Meet the performers, one name per Next
     prompts.forEach(function (p, i) {
       if (p.sec && p.sec !== last && opts.showSec) slides.push({ t: "sec", sec: p.sec, sub: p.secSub, kind: p.secKind, art: p.secArt, sfx: p.secSfx });
       last = p.sec;
@@ -153,6 +164,7 @@ var BAB = (function () {
   function slideView(s, prompts) {
     if (!s) return null;
     var v = { t: s.t };
+    if (s.n != null) v.n = s.n;
     if (s.sec) { v.sec = s.sec; v.sub = s.sub; v.kind = s.kind; v.art = s.art; }
     if (s.i != null) {
       var p = prompts[s.i];
@@ -173,7 +185,8 @@ var BAB = (function () {
       if (!l) { if (out.length) gap = true; return; }
       if (/^#\s/.test(l) || (l.charAt(0) === "#" && l.charAt(1) !== "#")) return; // notes
       var item;
-      if (/^##\s*/.test(l)) item = { k: "h", text: l.replace(/^##\s*/, "") };
+      if (/^\[\s*performers\s*\]$/i.test(l)) { item = { k: "perfs" }; out.hasPerfs = true; }
+      else if (/^##\s*/.test(l)) item = { k: "h", text: l.replace(/^##\s*/, "") };
       else {
         l = l.replace(/^([*\-•–])\s+/, "");
         var i = l.indexOf("|");
@@ -203,6 +216,6 @@ var BAB = (function () {
 
   return {
     CHANNEL: CHANNEL, BUILD: BUILD, esc: esc, parse: parse, parseTime: parseTime, fmtTime: fmtTime,
-    splitNames: splitNames, joinNames: joinNames, setLineWho: setLineWho, ytParse: ytParse, parseCredits: parseCredits, buildSlides: buildSlides, slideView: slideView, vkey: vkey
+    performerArt: performerArt, splitNames: splitNames, joinNames: joinNames, setLineWho: setLineWho, ytParse: ytParse, parseCredits: parseCredits, buildSlides: buildSlides, slideView: slideView, vkey: vkey
   };
 })();

@@ -295,6 +295,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
         <label class="check"><input type="checkbox" id="numCard"> <span>Show a big “Prompt #” card before each prompt</span></label>
         <label class="check"><input type="checkbox" id="showSec" checked> <span>Show a section card when a new section starts</span></label>
         <label class="check"><input type="checkbox" id="showDots" checked> <span>Show progress dots on screen</span></label>
+        <label class="check"><input type="checkbox" id="meetOn" checked> <span>Show a “Meet the performers” card after the welcome card (one name per Next, in the order of the Performers list)</span></label>
       </div>
     </div>
   </section>
@@ -394,6 +395,8 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   numCard.checked = store.get("bab.numCard") === "1";
   showSec.checked = store.get("bab.sec") !== "0";
   showDots.checked = store.get("bab.dots") !== "0";
+  var meetOn = $("meetOn"); meetOn.checked = store.get("bab.meet") !== "0";
+  meetOn.addEventListener("change", function () { store.set("bab.meet", meetOn.checked ? "1" : "0"); rebuild(); });
 
   var credText = $("credText"), credSpeed = $("credSpeed");
   credText.value = store.get("bab.credits") || "";
@@ -412,7 +415,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     var curI = slides[idx] ? slides[idx].i : null, curT = slides[idx] ? slides[idx].t : null;
     prompts = BAB.parse(ta.value);
     credItems = BAB.parseCredits(credText.value);
-    slides = BAB.buildSlides(prompts, { numCard: numCard.checked, showSec: showSec.checked, credits: credItems.length > 0 });
+    slides = BAB.buildSlides(prompts, { numCard: numCard.checked, showSec: showSec.checked, credits: credItems.length > 0 || performers.length > 0, meet: meetOn.checked ? performers.length : 0 });
     // Try to stay on the same prompt after an edit.
     if (curI != null) { for (var k = 0; k < slides.length; k++) if (slides[k].i === curI && slides[k].t === curT) { idx = k; break; } }
     else if (curT) { for (var k2 = 0; k2 < slides.length; k2++) if (slides[k2].t === curT && curT !== "sec") { idx = k2; break; } }
@@ -504,7 +507,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   // ================= Performers & assignments =================
   var performers = [];
   try { performers = JSON.parse(store.get("bab.performers") || "[]"); } catch (e) { performers = []; }
-  function savePerformers() { store.set("bab.performers", JSON.stringify(performers)); renderPerformers(); }
+  function savePerformers() { store.set("bab.performers", JSON.stringify(performers)); renderPerformers(); rebuild(); }
   function renderPerformers() {
     $("perfChips").innerHTML = performers.length ? performers.map(function (n, k) { return '<span class="chip">' + esc(n) + '<button type="button" data-k="' + k + '" aria-label="Remove ' + esc(n) + '">×</button></span>'; }).join("") : '<span class="hint">No performers yet.</span>';
   }
@@ -590,14 +593,20 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   }
   function view(k) {
     var v = BAB.slideView(slides[k], prompts);
-    if (v && v.t === "credits") v.items = credItems;
+    if (v && v.t === "credits") {
+      // Performers' cut-out names go where [performers] is, or at the top if it isn't there.
+      var items = credItems.slice(), pv = perfView();
+      if (pv.length && !credItems.hasPerfs) items = [{ k: "h", text: "Performers" }, { k: "perfs" }].concat(items.length ? [Object.assign({}, items[0], { gap: true })].concat(items.slice(1)) : []);
+      v.items = items.map(function (it) { return it.k === "perfs" ? { k: "perfs", list: pv, gap: it.gap } : it; });
+    }
     return v;
   }
+  function perfView() { return performers.map(function (n) { return { name: n, art: BAB.performerArt(n) }; }); }
   function stateMsg() {
     return {
       type: "state", cur: view(idx), next: view(idx + 1),
       name: nameIn.value.trim(), total: prompts.length, prog: progOf(idx), nextProg: progOf(idx + 1),
-      dots: showDots.checked, dark: dark, roll: roll, speed: +credSpeed.value
+      dots: showDots.checked, dark: dark, performers: perfView(), roll: roll, speed: +credSpeed.value
     };
   }
   function send() { post(stateMsg()); }
@@ -610,9 +619,9 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     if (onCred && !wasCred) { roll = { t0: Date.now() + 800, pausedAt: null }; credDone = false; var m = credItems.music ? soundByRef(credItems.music) : null; if (m) { credMusicId = m.id; playSound(m, true); } }
     if (!onCred && wasCred) { roll = null; if (credMusicId && act[credMusicId]) fadeOut(credMusicId, 2); credMusicId = null; }
     wasCred = onCred;
-    $("credBtn").innerHTML = !credItems.length ? "Add credits" : !onCred ? "Roll credits <kbd>C</kbd>" : roll && roll.pausedAt ? "Resume credits <kbd>P</kbd>" : "Pause credits <kbd>P</kbd>";
+    $("credBtn").innerHTML = !(credItems.length || performers.length) ? "Add credits" : !onCred ? "Roll credits <kbd>C</kbd>" : roll && roll.pausedAt ? "Resume credits <kbd>P</kbd>" : "Pause credits <kbd>P</kbd>";
     $("credBtn").classList.toggle("lit", onCred);
-    $("pos").textContent = !s ? "" : s.t === "credits" ? (roll && roll.pausedAt ? "Credits paused" : "Credits rolling (loops)") : s.t === "title" ? "Welcome card" : s.t === "sec" ? s.sec : s.t === "end" ? "End card" :
+    $("pos").textContent = !s ? "" : s.t === "credits" ? (roll && roll.pausedAt ? "Credits paused" : "Credits rolling (loops)") : s.t === "meet" ? "Meet the performers: " + (performers[s.n - 1] || "") : s.t === "title" ? "Welcome card" : s.t === "sec" ? s.sec : s.t === "end" ? "End card" :
       s.t === "num" ? "Prompt " + (s.i + 1) + " number card" : s.t === "video" ? "Prompt " + (s.i + 1) + " video playing" : s.t === "dir" ? "Line " + prompts[s.i].n + " · direction " + (s.d + 1) + " of " + prompts[s.i].dirs.length + (prompts[s.i].dirWho[s.d] ? " · " + prompts[s.i].dirWho[s.d] : "") : "Prompt " + (s.i + 1) + " of " + prompts.length;
     $("darkBtn").classList.toggle("lit", dark);
     $("darkBtn").textContent = dark ? "Blackout ON" : "Blackout";
@@ -656,7 +665,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
 
   document.querySelector(".transport").addEventListener("click", function (e) {
     var b = e.target.closest("[data-act]"); if (!b) return;
-    ({ prev: function () { go(-1); }, next: function () { go(1); }, dark: toggleDark, home: function () { jump(0); }, end: function () { jump(endIdx()); }, credits: function () { if (!credItems.length) { setTab("credits"); $("credText").focus(); } else if (onCredits()) pauseCredits(); else rollCredits(); } })[b.dataset.act]();
+    ({ prev: function () { go(-1); }, next: function () { go(1); }, dark: toggleDark, home: function () { jump(0); }, end: function () { jump(endIdx()); }, credits: function () { if (!(credItems.length || performers.length)) { setTab("credits"); $("credText").focus(); } else if (onCredits()) pauseCredits(); else rollCredits(); } })[b.dataset.act]();
   });
 
   // ================= Previews =================
