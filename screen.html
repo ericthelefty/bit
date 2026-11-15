@@ -56,7 +56,8 @@ body.awake { cursor: default; }
   60% { opacity: .9; transform: scale(.85) rotate(95deg); }
 }
 @media (prefers-reduced-motion: reduce) { .sparkle { animation: none; opacity: .8; transform: scale(.7); } }
-.names { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.6vmin; max-width: 100%; }
+.names { display: flex; flex-wrap: wrap; justify-content: center; gap: 2vmin; max-width: 100%; }
+.names .players { font-size: 6.4vmin; padding: .32em 1em .26em; letter-spacing: .05em; box-shadow: 0 .8vmin 2vmin rgba(0,0,0,.35); }
 .showart { --w: min(70vw, 118vmin); width: var(--w); display: flex; flex-direction: column; align-items: center; filter: drop-shadow(0 1.2vmin 2.4vmin rgba(0,0,0,.55)); }
 .showart.sa-welcome { --w: min(68vw, 112vmin); margin-bottom: 6vh; }
 .showart.sa-end { --w: min(58vw, 98vmin); }
