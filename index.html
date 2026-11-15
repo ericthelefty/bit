@@ -511,6 +511,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
 
   var asgLine = -1;
   function openAssign(btn) {
+    if (!$("asgPop").hidden && asgLine === +btn.dataset.line) { closeAssign(); return; }   // second click closes it
     asgLine = +btn.dataset.line;
     var cur = BAB.splitNames(btn.dataset.who), all = performers.slice();
     cur.forEach(function (n) { if (all.indexOf(n) === -1) all.push(n); });
