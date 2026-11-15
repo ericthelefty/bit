@@ -260,7 +260,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
         <p class="hint"><code>video: https://youtu.be/abc123XYZ90 0:30-1:45 Dub this nature doc | Dana &amp; Luis</code></p>
         <p class="hint">The screen shows the prompt card first. Press Next to play the clip full screen, then Next again to move on. The time range is optional, and a <code>?t=</code> in the link also sets the start.</p>
         <p class="hint"><b style="color:var(--chalk)">Minigames:</b> start a section with <code>Minigame: It’s D’improv (Take Some Direction)</code>. The part in parentheses shows as a subtitle on the minigame card.</p>
-        <p class="hint"><b style="color:var(--chalk)">Directions:</b> indent bullets under a line and each one becomes its own step. The line stays on screen, small, and each Next reveals the next direction.</p>
+        <p class="hint"><b style="color:var(--chalk)">Directions:</b> indent bullets under a line and each one becomes its own step. The line stays on screen, small, and each Next reveals the next direction. Add <code>| Name</code> after a direction to show whose turn it is.</p>
         <p class="hint"><code>* “That’s what she said.”</code><br><code>&nbsp;&nbsp;&nbsp;* Italian.</code><br><code>&nbsp;&nbsp;&nbsp;* More Italian.</code></p>
         <p class="hint">Bullets are stripped, blank lines are skipped, and lines starting with a single <code>#</code> are notes that never show.</p>
         <div id="warns" class="warnbox" hidden></div>
@@ -513,7 +513,7 @@ ol.list .err { display: block; color: #ff8a98; font-size: 12px; margin-top: 2px;
     $("credBtn").innerHTML = !credItems.length ? "Add credits" : !onCred ? "Roll credits <kbd>C</kbd>" : roll && roll.pausedAt ? "Resume credits <kbd>P</kbd>" : "Pause credits <kbd>P</kbd>";
     $("credBtn").classList.toggle("lit", onCred);
     $("pos").textContent = !s ? "" : s.t === "credits" ? (roll && roll.pausedAt ? "Credits paused" : "Credits rolling (loops)") : s.t === "title" ? "Welcome card" : s.t === "sec" ? s.sec : s.t === "end" ? "End card" :
-      s.t === "num" ? "Prompt " + (s.i + 1) + " number card" : s.t === "video" ? "Prompt " + (s.i + 1) + " video playing" : s.t === "dir" ? "Line " + prompts[s.i].n + " · direction " + (s.d + 1) + " of " + prompts[s.i].dirs.length : "Prompt " + (s.i + 1) + " of " + prompts.length;
+      s.t === "num" ? "Prompt " + (s.i + 1) + " number card" : s.t === "video" ? "Prompt " + (s.i + 1) + " video playing" : s.t === "dir" ? "Line " + prompts[s.i].n + " · direction " + (s.d + 1) + " of " + prompts[s.i].dirs.length + (prompts[s.i].dirWho[s.d] ? " · " + prompts[s.i].dirWho[s.d] : "") : "Prompt " + (s.i + 1) + " of " + prompts.length;
     $("darkBtn").classList.toggle("lit", dark);
     $("darkBtn").textContent = dark ? "Blackout ON" : "Blackout";
     markList(); scrollNow();

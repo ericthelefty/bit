@@ -1,7 +1,7 @@
 /* Build a Bit: shared helpers for the console (index.html) and the audience screen (screen.html). */
 var BAB = (function () {
   var CHANNEL = "build-a-bit";
-  var BUILD = "2026-11-15.2";   // bump on every change so an open audience window knows it is out of date
+  var BUILD = "2026-11-15.3";   // bump on every change so an open audience window knows it is out of date
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -95,11 +95,17 @@ var BAB = (function () {
       // An indented bullet under a line is a direction for that line.
       var indented = /^(\s{2,}|\t)/.test(raw) && BULLET.test(l);
       l = l.replace(BULLET, "");
-      if (indented && lastP && !lastP.video) { lastP.dirs.push(l); return; }
+      if (indented && lastP && !lastP.video) {
+        // "Bigger. | Alisa" -> direction "Bigger." for Alisa
+        var bar = l.indexOf("|");
+        lastP.dirs.push(bar === -1 ? l : l.slice(0, bar).trim());
+        lastP.dirWho.push(bar === -1 ? "" : l.slice(bar + 1).trim());
+        return;
+      }
       var i = l.indexOf("|");
       var main = i === -1 ? l : l.slice(0, i).trim(), who = i === -1 ? "" : l.slice(i + 1).trim();
       main = main.replace(/^(["“”])["“”]+/, "$1");           // tidy a doubled opening quote
-      var p = { text: main, who: who, sec: sec.name, secSub: sec.sub, secKind: sec.kind, secArt: sec.art, video: null, dirs: [] };
+      var p = { text: main, who: who, sec: sec.name, secSub: sec.sub, secKind: sec.kind, secArt: sec.art, video: null, dirs: [], dirWho: [] };
       var vm = main.match(/^video\s*:\s*(.+)$/i);
       if (vm) {
         var pv = parseVideo(vm[1]);
@@ -140,7 +146,7 @@ var BAB = (function () {
       var p = prompts[s.i];
       v.i = s.i; v.text = p.text; v.who = p.who; v.psec = p.sec; v.video = p.video;
       v.kind = p.secKind; v.n = p.n; v.of = p.of; v.ndirs = p.dirs.length;
-      if (s.d != null) { v.d = s.d; v.dir = p.dirs[s.d]; }
+      if (s.d != null) { v.d = s.d; v.dir = p.dirs[s.d]; v.dirWho = p.dirWho[s.d] || ""; }
     }
     return v;
   }

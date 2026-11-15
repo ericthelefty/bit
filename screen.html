@@ -176,7 +176,8 @@ body.awake #lost.on { display: block; }
     if (s.t === "dir") {
       return '<div class="tag enter">Direction ' + (s.d + 1) + ' of ' + s.ndirs + '</div>' +
         '<div class="line-small">' + esc(s.text) + '</div>' +
-        '<div class="prompt dir enter" id="ptext">' + esc(s.dir) + '</div>';
+        '<div class="prompt dir enter" id="ptext">' + esc(s.dir) + '</div>' +
+        (s.dirWho || s.who ? '<div class="players enter">' + esc(s.dirWho || s.who) + '</div>' : '');
     }
     if (s.t === "prompt") {
       var label = s.ndirs ? "Line " + s.n + " of " + s.of : s.kind === "minigame" && s.video ? "Video " + s.n + " of " + s.of : s.kind === "minigame" ? "Minigame" : "Prompt " + (s.i + 1);
