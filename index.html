@@ -334,7 +334,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
           <span>MP3, WAV, M4A, AAC, OGG or FLAC</span>
           <label class="btn go">Choose files<input type="file" id="fileIn" multiple accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac" hidden></label>
         </div>
-        <p class="hint">Sounds are saved in this browser on this Mac, so you only add them once. If you switch browsers or computers, add them again there. The first 10 sounds get keys <kbd>1</kbd>–<kbd>0</kbd> and the next 10 get <kbd>⇧</kbd>+<kbd>1</kbd>–<kbd>0</kbd>. Use the arrows to reorder. <b style="color:var(--chalk)">Loop</b> sounds (like walk-in music) repeat until you stop them. Pressing a sound's key or pad while it's playing stops it.</p>
+        <p class="hint">Sounds are saved in this browser on this Mac, so you only add them once. If you switch browsers or computers, add them again there. The first 10 sounds get keys <kbd>1</kbd>–<kbd>0</kbd> and the next 10 get <kbd>⇧</kbd>+<kbd>1</kbd>–<kbd>0</kbd>. Use the arrows to reorder. <b style="color:var(--chalk)">Loop</b> sounds (like walk-in music) repeat until you stop them. Pressing a sound's key or pad while it's playing stops it, and starting any sound stops whatever else is playing.</p>
       </div>
       <ul class="slist" id="slist"></ul>
       <p class="empty" id="slistEmpty">No sounds added yet.</p>
@@ -815,6 +815,8 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
       if (!forceRestart) { fadeOut(snd.id, snd.loop ? 1.2 : 0.15); return; }
       stopNow(snd.id);
     }
+    // Only one sound at a time: starting a sound stops anything else that's playing.
+    Object.keys(act).forEach(function (id) { if (id !== snd.id && !act[id].fading) fadeOut(id, 0.12); });
     var src = AC.createBufferSource(), g = AC.createGain();
     var tr = trimOf(snd);
     src.buffer = snd.buffer; src.loop = !!snd.loop; g.gain.value = snd.vol;
