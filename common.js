@@ -1,7 +1,7 @@
 /* Build a Bit: shared helpers for the console (index.html) and the audience screen (screen.html). */
 var BAB = (function () {
   var CHANNEL = "build-a-bit";
-  var BUILD = "2026-11-15.16";   // bump on every change so an open audience window knows it is out of date
+  var BUILD = "2026-11-15.17";   // bump on every change so an open audience window knows it is out of date
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -166,7 +166,9 @@ var BAB = (function () {
   // Credits: "## Heading", "Role | Name" rows, plain lines for names, blank line for a gap.
   function parseCredits(text) {
     var out = [], gap = false;
+    out.music = "";
     String(text || "").split(/\r?\n/).forEach(function (raw) {
+      raw = raw.replace(SFX_TAG, function (m, name) { out.music = name.trim(); return ""; });   // [sfx: Song] = credits music
       var l = raw.trim();
       if (!l) { if (out.length) gap = true; return; }
       if (/^#\s/.test(l) || (l.charAt(0) === "#" && l.charAt(1) !== "#")) return; // notes

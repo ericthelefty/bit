@@ -288,15 +288,13 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
         <p class="hint"><b style="color:var(--chalk)">Minigames:</b> start a section with <code>Minigame: It’s D’improv (Take Some Direction)</code>. The part in parentheses shows as a subtitle on the minigame card.</p>
         <p class="hint"><b style="color:var(--chalk)">Directions:</b> indent bullets under a line and each one becomes its own step. The line stays on screen, small, and each Next reveals the next direction. Add <code>| Name</code> after a direction to show whose turn it is.</p>
         <p class="hint"><code>* “That’s what she said.”</code><br><code>&nbsp;&nbsp;&nbsp;* Italian.</code><br><code>&nbsp;&nbsp;&nbsp;* More Italian.</code></p>
-        <p class="hint"><b style="color:var(--chalk)">Sound for a card:</b> add <code>[sfx: Air horn]</code> anywhere on a line (a prompt, a direction, a video line or a section heading) and that sound plays when the card comes up. Use the sound's name from the Sounds tab, or its pad number like <code>[sfx: 3]</code>. It plays instead of the "new prompt" sound.</p>
+        <p class="hint"><b style="color:var(--chalk)">Sound for a card:</b> add <code>[sfx: Air horn]</code> anywhere on a line (a prompt, a direction, a video line or a section heading) and that sound plays when the card comes up. Use the sound's name from the Sounds tab, or its pad number like <code>[sfx: 3]</code>. No other sounds play on their own; only tagged cards (and the sound board when you press it).</p>
         <p class="hint">Bullets are stripped, blank lines are skipped, and lines starting with a single <code>#</code> are notes that never show.</p>
         <div id="warns" class="warnbox" hidden></div>
         <span class="lbl" style="margin-top:6px">Options</span>
         <label class="check"><input type="checkbox" id="numCard"> <span>Show a big “Prompt #” card before each prompt</span></label>
         <label class="check"><input type="checkbox" id="showSec" checked> <span>Show a section card when a new section starts</span></label>
         <label class="check"><input type="checkbox" id="showDots" checked> <span>Show progress dots on screen</span></label>
-        <label class="lbl" for="psound" style="margin-top:6px">Sound when a new prompt appears</label>
-        <select id="psound"><option value="">None</option></select>
       </div>
     </div>
   </section>
@@ -318,9 +316,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
           <option value="8">Medium</option>
           <option value="12">Fast</option>
         </select>
-        <label class="lbl" for="credMusic" style="margin-top:6px">Music while the credits roll</label>
-        <select id="credMusic"><option value="">None</option></select>
-        <p class="hint">Starts when the credits start and fades out when you leave them. Pick one of your sounds from the Sounds tab (turn on Loop there if it's shorter than the credits).</p>
+        <p class="hint" style="margin-top:6px"><b style="color:var(--chalk)">Music:</b> add <code>[sfx: Song name]</code> on any line of the credits to play that sound while they roll. It starts with the credits and fades out when you leave them. Turn on Loop for it on the Sounds tab if it's shorter than the credits. With no tag, the credits roll silently.</p>
       </div>
     </div>
   </section>
@@ -392,23 +388,23 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   document.addEventListener("click", function (e) { var a = e.target.closest("[data-goto]"); if (a) { e.preventDefault(); setTab(a.dataset.goto); } });
 
   // ================= Prompts & slides =================
-  var ta = $("prompts"), nameIn = $("showName"), numCard = $("numCard"), showSec = $("showSec"), showDots = $("showDots"), psound = $("psound");
+  var ta = $("prompts"), nameIn = $("showName"), numCard = $("numCard"), showSec = $("showSec"), showDots = $("showDots");
   ta.value = store.get("bab.prompts") != null ? store.get("bab.prompts") : EXAMPLES;
   nameIn.value = store.get("bab.name") || "";
   numCard.checked = store.get("bab.numCard") === "1";
   showSec.checked = store.get("bab.sec") !== "0";
   showDots.checked = store.get("bab.dots") !== "0";
 
-  var credText = $("credText"), credSpeed = $("credSpeed"), credMusic = $("credMusic");
+  var credText = $("credText"), credSpeed = $("credSpeed");
   credText.value = store.get("bab.credits") || "";
   credSpeed.value = store.get("bab.credSpeed") || "8";
   var prompts = [], slides = [], idx = +(store.get("bab.idx") || 0), dark = false;
+  var credMusicId = null;
   var credItems = [], roll = null, wasCred = false, credDone = false;
 
   function saveOpts() {
     store.set("bab.prompts", ta.value); store.set("bab.name", nameIn.value);
     store.set("bab.numCard", numCard.checked ? "1" : "0"); store.set("bab.sec", showSec.checked ? "1" : "0"); store.set("bab.dots", showDots.checked ? "1" : "0");
-    if (soundsLoaded) { store.set("bab.psound", psound.value); store.set("bab.credMusic", credMusic.value); }
     store.set("bab.credits", credText.value); store.set("bab.credSpeed", credSpeed.value);
   }
 
@@ -424,7 +420,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     renderList(); renderWarns(); update();
   }
   [ta, nameIn, credText].forEach(function (el) { el.addEventListener("input", function () { saveOpts(); rebuild(); }); });
-  [numCard, showSec, showDots, psound, credSpeed, credMusic].forEach(function (el) { el.addEventListener("change", function () { saveOpts(); rebuild(); }); });
+  [numCard, showSec, showDots, credSpeed].forEach(function (el) { el.addEventListener("change", function () { saveOpts(); rebuild(); }); });
 
   function renderWarns() {
     var bad = prompts.filter(function (p) { return p.bad; });
@@ -611,8 +607,8 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     var s = slides[idx];
     // Entering or leaving the credits starts or stops the roll and its music.
     var onCred = !!(s && s.t === "credits");
-    if (onCred && !wasCred) { roll = { t0: Date.now() + 800, pausedAt: null }; credDone = false; var m = byId(credMusic.value); if (m) playSound(m, true); }
-    if (!onCred && wasCred) { roll = null; if (act[credMusic.value]) fadeOut(credMusic.value, 2); }
+    if (onCred && !wasCred) { roll = { t0: Date.now() + 800, pausedAt: null }; credDone = false; var m = credItems.music ? soundByRef(credItems.music) : null; if (m) { credMusicId = m.id; playSound(m, true); } }
+    if (!onCred && wasCred) { roll = null; if (credMusicId && act[credMusicId]) fadeOut(credMusicId, 2); credMusicId = null; }
     wasCred = onCred;
     $("credBtn").innerHTML = !credItems.length ? "Add credits" : !onCred ? "Roll credits <kbd>C</kbd>" : roll && roll.pausedAt ? "Resume credits <kbd>P</kbd>" : "Pause credits <kbd>P</kbd>";
     $("credBtn").classList.toggle("lit", onCred);
@@ -631,11 +627,10 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     idx = n; update();
     if (d > 0) cardSound(slides[idx]);
   }
-  // A card's own [sfx: ...] wins; otherwise new prompts get the "new prompt" sound.
+  // Sounds only play when the script asks for them with [sfx: ...].
   function cardSound(s) {
-    if (!s) return;
-    if (s.sfx) { var snd = soundByRef(s.sfx); if (snd) { playSound(snd, true); return; } }
-    if (s.t === "prompt") promptSound();
+    if (!s || !s.sfx) return;
+    var snd = soundByRef(s.sfx); if (snd) playSound(snd, true);
   }
   function soundByRef(ref) {
     var r = String(ref).trim().toLowerCase(), n = r.replace(/^#/, "");
@@ -878,17 +873,12 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     $("padsEmpty").hidden = !!sounds.length;
     paintPads(); paintAudio();
     if (prompts.length) { var y = $("list").scrollTop; renderList(); $("list").scrollTop = y; }   // refresh ♪ tags
-    // prompt-sound picker
-    var cur = store.get("bab.psound") || "";
-    psound.innerHTML = '<option value="">None</option>' + sounds.map(function (s) { return '<option value="' + s.id + '">' + esc(s.name) + '</option>'; }).join("");
-    psound.value = sounds.some(function (s) { return s.id === cur; }) ? cur : "";
-    var cm = store.get("bab.credMusic") || "";
-    credMusic.innerHTML = psound.innerHTML;
-    credMusic.value = sounds.some(function (s) { return s.id === cm; }) ? cm : "";
+
+
   }
   $("pads").addEventListener("click", function (e) { var b = e.target.closest(".pad"); if (b) playSound(byId(b.dataset.id)); });
   function byId(id) { for (var i = 0; i < sounds.length; i++) if (sounds[i].id === id) return sounds[i]; return null; }
-  function promptSound() { var s = byId(psound.value); if (s) playSound(s, true); }
+
 
   // ---- IndexedDB storage for sound files ----
   function db() {
