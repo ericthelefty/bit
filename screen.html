@@ -6,6 +6,7 @@
 <title>Build a Bit · Audience screen</title>
 <link rel="icon" href="favicon.png">
 <link rel="preload" as="image" href="logo.png">
+<link rel="preload" as="image" href="art/the-build-a-bit-show.png">
 <link rel="preload" as="image" href="art/its-dimprov.png">
 <link rel="preload" as="image" href="art/would-you-look-at-that.png">
 <link rel="preload" as="image" href="art/produce-a-ruckus.png">
@@ -62,6 +63,8 @@ body.awake { cursor: default; }
 .line-small { font-weight: 700; font-size: 4.4vmin; line-height: 1.2; color: var(--dim); max-width: 90%; text-wrap: balance; }
 .prompt.dir { color: var(--bulb); }
 .logo { display: block; width: min(80vw, 150vmin); max-height: 42vh; object-fit: contain; filter: drop-shadow(0 1.2vmin 2.4vmin rgba(0,0,0,.55)); }
+.logo.welcome-art { width: min(64vw, 110vmin); max-height: 47vh; margin-bottom: 7vh; }
+.logo.small.show-art { width: min(40vw, 70vmin); max-height: 34vh; }
 .logo.small { width: min(46vw, 80vmin); max-height: 22vh; }
 .logo.enter { animation: logo-in .7s cubic-bezier(.2,.9,.25,1.15) both; }
 @keyframes logo-in { from { opacity: 0; transform: rotate(-2deg) scale(.9); } to { opacity: 1; transform: none; } }
@@ -168,7 +171,7 @@ body.awake #lost.on { display: block; }
     var sub = st.name && !/^build a bit$/i.test(st.name) ? st.name : "";
     var logo = '<img class="logo enter" src="logo.png" alt="Build a Bit">';
     if (!s) return '<div class="sub">End of the show</div>';
-    if (s.t === "title") return '<div class="welcome enter">Welcome to</div><div class="sparkle-wrap" id="sparkles">' + logo + '</div>' + (sub ? '<div class="sub enter">' + esc(sub) + '</div>' : '') + '<div class="first-ever enter">The first one ever!</div>';
+    if (s.t === "title") return '<div class="welcome enter">Welcome to</div><div class="sparkle-wrap" id="sparkles"><img class="logo welcome-art enter" src="art/the-build-a-bit-show.png" alt="The Build a Bit Show"></div>' + (sub ? '<div class="sub enter">' + esc(sub) + '</div>' : '') + '<div class="first-ever enter">The first one ever!</div>';
     if (s.t === "sec") {
       if (s.kind === "minigame" && s.art) {
         // Words before the last comma ("It's Not Delivery,") lead into the title art.
@@ -196,7 +199,7 @@ body.awake #lost.on { display: block; }
       return h;
     }
     if (s.t === "video") return "";
-    return '<div class="big-title enter">Thanks for coming!</div><img class="logo small enter" src="logo.png" alt="Build a Bit">' + (sub ? '<div class="sub enter">' + esc(sub) + '</div>' : '');
+    return '<div class="big-title enter">Thanks for coming!</div><img class="logo small show-art enter" src="art/the-build-a-bit-show.png" alt="The Build a Bit Show">' + (sub ? '<div class="sub enter">' + esc(sub) + '</div>' : '');
   }
 
   function render(st) {
@@ -313,7 +316,7 @@ body.awake #lost.on { display: block; }
       if (it.k === "h") return '<div class="cr-h' + g + '">' + esc(it.text) + '</div>';
       if (it.k === "row") return '<div class="cr-row' + g + '"><span class="r">' + esc(it.role) + '</span><span class="n">' + esc(it.name) + '</span></div>';
       return '<div class="cr-name' + g + '">' + esc(it.text) + '</div>';
-    }).join("") + '<div class="cr-end"><img class="logo small" id="crLogo" src="logo.png" alt="Build a Bit"></div>';
+    }).join("") + '<div class="cr-end"><img class="logo small show-art" id="crLogo" src="art/the-build-a-bit-show.png" alt="The Build a Bit Show"></div>';
   }
   function rollTick() {
     if (!credOn) { rafOn = false; return; }
