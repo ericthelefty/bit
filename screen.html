@@ -53,6 +53,7 @@ body.awake { cursor: default; }
   60% { opacity: .9; transform: scale(.85) rotate(95deg); }
 }
 @media (prefers-reduced-motion: reduce) { .sparkle { animation: none; opacity: .8; transform: scale(.7); } }
+.names { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.6vmin; max-width: 100%; }
 .big-title.mg { font-size: 12vmin; max-width: 100%; }
 .mg-sub { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 5vmin; color: var(--chalk); background: var(--curtain); padding: .25em .9em .2em; border-radius: 1.4vmin; transform: rotate(-1.5deg); }
 .mg-art { display: block; width: min(84vw, 150vmin); max-height: 46vh; object-fit: contain; filter: drop-shadow(0 1.2vmin 2.4vmin rgba(0,0,0,.55)); }
@@ -156,6 +157,12 @@ body.awake #lost.on { display: block; }
     el.style.fontSize = best + "px";
   }
 
+  // Each performer gets their own red oval; with no names, the section name shows in one oval.
+  function namesHtml(who, fallback) {
+    var names = BAB.splitNames(who);
+    if (!names.length) return fallback ? '<div class="players enter">' + esc(fallback) + '</div>' : '';
+    return '<div class="names enter">' + names.map(function (n) { return '<span class="players">' + esc(n) + '</span>'; }).join("") + '</div>';
+  }
   function slideHtml(s, st) {
     var sub = st.name && !/^build a bit$/i.test(st.name) ? st.name : "";
     var logo = '<img class="logo enter" src="logo.png" alt="Build a Bit">';
@@ -177,14 +184,14 @@ body.awake #lost.on { display: block; }
       return '<div class="tag enter">Direction ' + (s.d + 1) + ' of ' + s.ndirs + '</div>' +
         '<div class="line-small">' + esc(s.text) + '</div>' +
         '<div class="prompt dir enter" id="ptext">' + esc(s.dir) + '</div>' +
-        (s.dirWho || s.who ? '<div class="players enter">' + esc(s.dirWho || s.who) + '</div>' : '');
+        namesHtml(s.dirWho || s.who, "");
     }
     if (s.t === "prompt") {
       var label = s.ndirs ? "Line " + s.n + " of " + s.of : s.kind === "minigame" && s.video ? "Video " + s.n + " of " + s.of : s.kind === "minigame" ? "Minigame" : "Prompt " + (s.i + 1);
       var h = '<div class="tag enter">' + label + '</div>';
       if (s.video) h += '<div class="vbadge enter">Video prompt</div>';
       if (s.text) h += '<div class="prompt enter" id="ptext">' + esc(s.text) + '</div>';
-      if (s.who || s.psec) h += '<div class="players enter">' + esc(s.who || s.psec) + '</div>';
+      h += namesHtml(s.who, s.psec);
       return h;
     }
     if (s.t === "video") return "";

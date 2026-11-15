@@ -429,6 +429,10 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     w.innerHTML = bad.map(function (p) { return "Couldn't read the YouTube link in: <code>" + esc(p.text) + "</code>"; }).join("<br>");
   }
 
+  function whoTags(who) {
+    var n = BAB.splitNames(who);
+    return n.length ? '<br>' + n.map(function (x) { return '<span class="who">' + esc(x) + '</span>'; }).join(" ") : "";
+  }
   function renderList() {
     $("count").textContent = prompts.length + (prompts.length === 1 ? " prompt" : " prompts");
     var ol = $("list");
@@ -439,12 +443,12 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
       if (p.sec !== last) { last = p.sec; if (p.sec) h = '<div class="sechd" data-first="' + i + '" tabindex="0" title="Show this section\u2019s title card">' + (p.secKind === "minigame" ? '<span class="v" style="background:var(--curtain);color:var(--chalk)">MINIGAME</span>' : "") + esc(p.sec) + '</div>'; }
       var hasDirs = p.dirs.length > 0;
       var dirs = hasDirs ? '<ol class="dirs">' + p.dirs.map(function (d, k) {
-        return '<li data-i="' + i + '" data-d="' + k + '"><span>' + esc(d) + (p.dirWho[k] ? '<br><span class="who">' + esc(p.dirWho[k]) + '</span>' : "") + '</span>' +
+        return '<li data-i="' + i + '" data-d="' + k + '"><span>' + esc(d) + whoTags(p.dirWho[k]) + '</span>' +
           '<button class="asg" type="button" data-line="' + p.dirLine[k] + '" data-who="' + esc(p.dirWho[k] || "") + '" data-label="' + esc(d) + '">Assign</button></li>';
       }).join("") + '</ol>' : "";
       return h + '<li data-i="' + i + '" class="panel' + (p.bad ? " bad" : "") + '"><span class="n">' + (i + 1) + '</span><span>' +
         (p.video ? '<span class="v">VIDEO</span>' : "") + esc(p.text || (p.video ? "(no caption)" : "")) +
-        (p.who ? '<br><span class="who">' + esc(p.who) + '</span>' : "") +
+        whoTags(p.who) +
         (p.bad ? '<span class="err">' + esc(p.bad) + '</span>' : "") + '</span>' +
         (hasDirs ? '<span></span>' : '<button class="asg" type="button" data-line="' + p.line + '" data-who="' + esc(p.who || "") + '" data-label="' + esc(p.text || "Video") + '">Assign</button>') +
         dirs + '</li>';
