@@ -134,6 +134,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
 .buzz:hover { filter: brightness(1.1); }
 .buzz:active, .buzz.hit { transform: translateY(3px); border-bottom-width: 2px; }
 .buzz kbd { font-size: 13px; }
+.buzz .bzname { font-family: var(--body); font-size: 13px; font-weight: 700; letter-spacing: 0; text-transform: none; opacity: .8; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .buzz.none { background: var(--house); border: 1px dashed var(--line); color: var(--dim); font-size: 16px; letter-spacing: .02em; text-transform: none; font-family: var(--body); font-weight: 700; }
 .transport { display: flex; flex-wrap: wrap; gap: 8px; }
 .transport .grow { flex: 1; }
@@ -664,16 +665,25 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     if (!s || !s.sfx) return;
     var snd = soundByRef(s.sfx); if (snd) playSound(snd, true);
   }
-  // Buzzer: a random sound whose name contains "buzzer", never the same one twice in a row.
-  var lastBuzz = null;
+  // Buzzer: sounds whose name contains "buzzer", dealt like a shuffled deck so every one
+  // plays once before any repeats (and never the same one twice in a row).
+  var lastBuzz = null, buzzDeck = [], buzzNameT = 0;
   function buzzers() { return sounds.filter(function (s) { return /buzzer/i.test(s.name) && s.buffer; }); }
   function playBuzzer() {
     var list = buzzers();
     if (!list.length) { setTab("sounds"); return; }
-    var pool = list.length > 1 ? list.filter(function (s) { return s.id !== lastBuzz; }) : list;
-    var pick = pool[Math.floor(Math.random() * pool.length)];
-    lastBuzz = pick.id; playSound(pick, true);
+    var ids = list.map(function (s) { return s.id; });
+    buzzDeck = buzzDeck.filter(function (id) { return ids.indexOf(id) !== -1; });
+    if (!buzzDeck.length) {
+      buzzDeck = ids.slice();
+      for (var i = buzzDeck.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = buzzDeck[i]; buzzDeck[i] = buzzDeck[j]; buzzDeck[j] = t; }
+      if (buzzDeck.length > 1 && buzzDeck[0] === lastBuzz) buzzDeck.push(buzzDeck.shift());
+    }
+    var id = buzzDeck.shift(), pick = list.filter(function (s) { return s.id === id; })[0];
+    lastBuzz = id; playSound(pick, true);
     var b = $("buzzBtn"); b.classList.add("hit"); setTimeout(function () { b.classList.remove("hit"); }, 140);
+    b.innerHTML = "Buzzer <kbd>Z</kbd><span class=\"bzname\">" + esc(pick.name) + "</span>";
+    clearTimeout(buzzNameT); buzzNameT = setTimeout(paintBuzzBtn, 2500);
   }
   function paintBuzzBtn() {
     var n = buzzers().length, b = $("buzzBtn");
