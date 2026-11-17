@@ -375,10 +375,15 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
         <div class="card" style="width:min(980px,100%);gap:14px">
           <div class="row" style="justify-content:space-between"><span class="lbl">Trim: <span id="trimName" style="color:var(--chalk);text-transform:none;letter-spacing:0"></span></span><span class="hint" id="trimLen"></span></div>
           <canvas id="trimCanvas" width="1880" height="300" style="width:100%;height:150px;background:var(--house);border:1px solid var(--line);border-radius:8px;cursor:ew-resize;touch-action:none"></canvas>
+          <div class="tzoom" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div><div class="row" style="justify-content:space-between;margin-bottom:4px"><span class="lbl">Start, zoomed in</span><span class="hint" id="zoomAT"></span></div><canvas id="zoomA" width="900" height="220" style="width:100%;height:110px;background:var(--house);border:1px solid var(--line);border-radius:8px;cursor:ew-resize;touch-action:none;display:block"></canvas></div>
+            <div><div class="row" style="justify-content:space-between;margin-bottom:4px"><span class="lbl">End, zoomed in</span><span class="hint" id="zoomBT"></span></div><canvas id="zoomB" width="900" height="220" style="width:100%;height:110px;background:var(--house);border:1px solid var(--line);border-radius:8px;cursor:ew-resize;touch-action:none;display:block"></canvas></div>
+          </div>
+          <div class="row" style="gap:8px;font-size:13px;color:var(--dim)">Zoom <button class="btn mini" type="button" id="zoomOut" aria-label="Zoom out">−</button><button class="btn mini" type="button" id="zoomIn" aria-label="Zoom in">+</button><span id="zoomSpan"></span><span class="hint">Drag in a zoomed view to fine-tune that handle. Scroll over it to zoom.</span></div>
           <p class="hint" style="margin:0">Drag the gold handles to set where the sound starts and ends. Turn on Loop to repeat that part until you stop it. The original file isn't changed, so you can always reset.</p>
           <div class="row">
-            <label class="row" style="gap:6px;font-size:13px;color:var(--dim)">Start <input type="number" id="trimA" step="0.01" min="0" style="width:90px;background:var(--house);border:1px solid var(--line);border-radius:6px;padding:6px 8px"> s</label>
-            <label class="row" style="gap:6px;font-size:13px;color:var(--dim)">End <input type="number" id="trimB" step="0.01" min="0" style="width:90px;background:var(--house);border:1px solid var(--line);border-radius:6px;padding:6px 8px"> s</label>
+            <label class="row" style="gap:6px;font-size:13px;color:var(--dim)">Start <input type="number" id="trimA" step="0.001" min="0" style="width:90px;background:var(--house);border:1px solid var(--line);border-radius:6px;padding:6px 8px"> s</label>
+            <label class="row" style="gap:6px;font-size:13px;color:var(--dim)">End <input type="number" id="trimB" step="0.001" min="0" style="width:90px;background:var(--house);border:1px solid var(--line);border-radius:6px;padding:6px 8px"> s</label>
             <button class="btn" type="button" id="trimPlay">▶ Play trimmed</button>
             <button class="btn" type="button" id="trimReset">Reset</button>
             <label class="check" style="font-size:14px" title="When on, the sound repeats the trimmed part until you stop it"><input type="checkbox" id="trimLoop"> Loop</label>
@@ -1069,7 +1074,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   }
   function closeTrim() { stopTrimPreview(); $("trimModal").hidden = true; trimSnd = null; }
   function syncTrimInputs() {
-    $("trimA").value = trimA.toFixed(2); $("trimB").value = trimB.toFixed(2);
+    $("trimA").value = trimA.toFixed(3); $("trimB").value = trimB.toFixed(3);
     $("trimA").max = $("trimB").max = trimSnd.buffer.duration.toFixed(2);
     var len = trimB - trimA; $("trimLen").textContent = "Plays " + (len < 10 ? len.toFixed(2) + "s" : BAB.fmtTime(len)) + " of " + trimSnd.buffer.duration.toFixed(2) + "s";
   }
@@ -1090,7 +1095,55 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
       c.beginPath(); var y = n ? H - 2 : 2; c.moveTo(x - 16, y); c.lineTo(x + 16, y); c.lineTo(x, n ? H - 26 : 26); c.closePath(); c.fill();
     });
     if (playT != null) { var xp = playT / d * W; c.fillStyle = "#f4efe4"; c.fillRect(xp - 1.5, 0, 3, H); }
+    trimPeakMax = peak;
+    drawZoom("a", playT); drawZoom("b", playT);
   }
+  // ---- Zoomed views around each handle ----
+  var ZOOMS = [4, 2, 1, 0.5, 0.25, 0.1, 0.05, 0.02], zoomI = 3, zoomHold = { a: null, b: null }, trimPeakMax = 1;
+  function zoomWin(which) {
+    var d = trimSnd.buffer.duration, span = Math.min(ZOOMS[zoomI], d);
+    var c = zoomHold[which] != null ? zoomHold[which] : (which === "a" ? trimA : trimB);
+    var t0 = Math.max(0, Math.min(d - span, c - span / 2));
+    return { t0: t0, t1: t0 + span, span: span };
+  }
+  function fmtS(t) { return t.toFixed(ZOOMS[zoomI] < 0.5 ? 3 : 2) + "s"; }
+  function drawZoom(which, playT) {
+    var cv = $(which === "a" ? "zoomA" : "zoomB"), c = cv.getContext("2d"), W = cv.width, H = cv.height;
+    var buf = trimSnd.buffer, data = buf.getChannelData(0), sr = buf.sampleRate, w = zoomWin(which);
+    var s0 = Math.floor(w.t0 * sr), per = (w.span * sr) / W, sc = trimPeakMax > 0 ? (H * 0.46) / trimPeakMax : 1;
+    var xa = (trimA - w.t0) / w.span * W, xb = (trimB - w.t0) / w.span * W;
+    c.clearRect(0, 0, W, H);
+    c.fillStyle = "rgba(244,239,228,.08)"; c.fillRect(0, H / 2, W, 1);
+    for (var x = 0; x < W; x++) {
+      var a = s0 + Math.floor(x * per), b = Math.max(a + 1, s0 + Math.floor((x + 1) * per)), lo = 0, hi = 0;
+      for (var k = a; k < b; k++) { var v = data[k] || 0; if (v < lo) lo = v; if (v > hi) hi = v; }
+      c.fillStyle = x >= xa && x <= xb ? "#ffbe3d" : "#4a4560";
+      var y1 = H / 2 - hi * sc, y2 = H / 2 - lo * sc; c.fillRect(x, y1, 1, Math.max(1, y2 - y1));
+    }
+    c.fillStyle = "rgba(10,9,14,.55)";
+    if (xa > 0) c.fillRect(0, 0, Math.min(W, xa), H);
+    if (xb < W) c.fillRect(Math.max(0, xb), 0, W - Math.max(0, xb), H);
+    [xa, xb].forEach(function (x) { if (x >= -4 && x <= W + 4) { c.fillStyle = "#ffbe3d"; c.fillRect(x - 2, 0, 4, H); } });
+    if (playT != null && playT >= w.t0 && playT <= w.t1) { var xp = (playT - w.t0) / w.span * W; c.fillStyle = "#f4efe4"; c.fillRect(xp - 1, 0, 2, H); }
+    $(which === "a" ? "zoomAT" : "zoomBT").textContent = fmtS(which === "a" ? trimA : trimB);
+    $("zoomSpan").textContent = "Showing " + (w.span < 1 ? Math.round(w.span * 1000) + " ms" : w.span + "s") + " around each handle";
+  }
+  function setZoom(i) { zoomI = Math.max(0, Math.min(ZOOMS.length - 1, i)); if (trimSnd) drawTrim(); }
+  $("zoomIn").onclick = function () { setZoom(zoomI + 1); };
+  $("zoomOut").onclick = function () { setZoom(zoomI - 1); };
+  ["a", "b"].forEach(function (which) {
+    var cv = $(which === "a" ? "zoomA" : "zoomB");
+    function tAt(e) { var r = cv.getBoundingClientRect(), w = zoomWin(which); return w.t0 + Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * w.span; }
+    cv.addEventListener("pointerdown", function (e) {
+      if (!trimSnd) return;
+      zoomHold[which] = (zoomWin(which).t0 + zoomWin(which).t1) / 2;   // keep the view still while dragging
+      trimDrag = which; cv.setPointerCapture(e.pointerId); moveHandle(tAt(e));
+    });
+    cv.addEventListener("pointermove", function (e) { if (trimDrag === which && zoomHold[which] != null) moveHandle(tAt(e)); });
+    function end() { if (zoomHold[which] != null) { zoomHold[which] = null; trimDrag = null; if (trimSnd) drawTrim(); } }
+    cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
+    cv.addEventListener("wheel", function (e) { if (!trimSnd) return; e.preventDefault(); setZoom(zoomI + (e.deltaY < 0 ? 1 : -1)); }, { passive: false });
+  });
   function trimX(e) { var cv = $("trimCanvas"), r = cv.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * trimSnd.buffer.duration; }
   $("trimCanvas").addEventListener("pointerdown", function (e) {
     if (!trimSnd) return;
