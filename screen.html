@@ -91,6 +91,7 @@ body.awake { cursor: default; }
 .line-small { font-weight: 700; font-size: 4.4vmin; line-height: 1.2; color: var(--dim); max-width: 90%; text-wrap: balance; }
 .prompt.dir { color: var(--bulb); }
 .logo { display: block; width: min(80vw, 150vmin); max-height: 42vh; object-fit: contain; filter: drop-shadow(0 1.2vmin 2.4vmin rgba(0,0,0,.55)); }
+.trophy { height: min(66vh, 60vw); width: auto; display: block; filter: drop-shadow(0 2vmin 4vmin rgba(0,0,0,.6)); }
 .logo.welcome-art { width: min(64vw, 110vmin); max-height: 47vh; margin-bottom: 7vh; }
 .logo.small.show-art { width: min(60vw, 104vmin); max-height: 42vh; }
 .logo.small { width: min(46vw, 80vmin); max-height: 22vh; }
@@ -241,6 +242,7 @@ body.awake #lost.on { display: block; }
       return h;
     }
     if (s.t === "video") return "";
+    if (s.t === "winner") return '<div class="welcome enter">And the winner is…</div><div class="sparkle-wrap" id="sparkles"><img class="trophy wiggle" src="art/trophy.png" alt="Chicken trophy"></div>';
     return '<div class="big-title enter">Thanks for coming!</div><img class="logo small wiggle" src="logo.png" alt="Build a Bit">' + (sub ? '<div class="sub enter">' + esc(sub) + '</div>' : '');
   }
 

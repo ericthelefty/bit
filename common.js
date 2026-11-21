@@ -1,7 +1,7 @@
 /* Build a Bit: shared helpers for the console (index.html) and the audience screen (screen.html). */
 var BAB = (function () {
   var CHANNEL = "build-a-bit";
-  var BUILD = "2026-11-21.2";   // bump on every change so an open audience window knows it is out of date
+  var BUILD = "2026-11-21.3";   // bump on every change so an open audience window knows it is out of date
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -155,6 +155,7 @@ var BAB = (function () {
       if (p.video) slides.push({ t: "video", i: i });
       p.dirs.forEach(function (_, d) { slides.push({ t: "dir", i: i, d: d, sfx: p.dirSfx[d] }); });
     });
+    if (opts.winner !== false) slides.push({ t: "winner" });
     slides.push({ t: "end" });
     if (opts.credits) slides.push({ t: "credits" });
     return slides;

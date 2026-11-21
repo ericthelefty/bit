@@ -225,6 +225,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
           <button class="btn big" type="button" data-act="prev">← Back</button>
           <button class="btn go big grow" type="button" data-act="next">Next →</button>
           <button class="btn big" type="button" data-act="dark" id="darkBtn">Blackout</button>
+          <button class="btn" type="button" data-act="winner">Winner <kbd>W</kbd></button>
           <button class="btn" type="button" data-act="end">End card</button>
           <button class="btn" type="button" data-act="credits" id="credBtn">Roll credits <kbd>C</kbd></button>
         </div>
@@ -260,6 +261,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
             <div><kbd>⇧</kbd>+<kbd>1</kbd>–<kbd>0</kbd> Sounds 11–20</div>
             <div><kbd>X</kbd> Stop all sounds</div>
             <div><kbd>⇧</kbd>+<kbd>X</kbd> Fade out all sounds</div>
+            <div><kbd>W</kbd> And the winner is…</div>
             <div><kbd>C</kbd> Roll credits</div>
             <div><kbd>Z</kbd> Random buzzer</div>
             <div><kbd>P</kbd> / <kbd>R</kbd> Pause / restart credits (while rolling)</div>
@@ -514,7 +516,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   function curPromptIndex() {
     var s = slides[idx]; if (!s) return -1;
     if (s.i != null) return s.i;
-    if (s.t === "end" || s.t === "credits") return prompts.length;
+    if (s.t === "winner" || s.t === "end" || s.t === "credits") return prompts.length;
     for (var k = idx; k < slides.length; k++) if (slides[k].i != null) return slides[k].i - 0.5;
     return -1;
   }
@@ -673,7 +675,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     wasCred = onCred;
     $("credBtn").innerHTML = !(credItems.length || performers.length) ? "Add credits" : !onCred ? "Roll credits <kbd>C</kbd>" : roll && roll.pausedAt ? "Resume credits <kbd>P</kbd>" : "Pause credits <kbd>P</kbd>";
     $("credBtn").classList.toggle("lit", onCred);
-    $("pos").textContent = !s ? "" : s.t === "credits" ? (roll && roll.pausedAt ? "Credits paused" : "Credits rolling (loops)") : s.t === "meet" ? "Meet the performers: " + (performers[s.n - 1] || "") : s.t === "title" ? "Welcome card" : s.t === "sec" ? s.sec : s.t === "end" ? "End card" :
+    $("pos").textContent = !s ? "" : s.t === "credits" ? (roll && roll.pausedAt ? "Credits paused" : "Credits rolling (loops)") : s.t === "meet" ? "Meet the performers: " + (performers[s.n - 1] || "") : s.t === "title" ? "Welcome card" : s.t === "sec" ? s.sec : s.t === "end" ? "End card" : s.t === "winner" ? "And the winner is…" :
       s.t === "num" ? "Prompt " + (s.i + 1) + " number card" : s.t === "video" ? "Prompt " + (s.i + 1) + " video playing" : s.t === "dir" ? "Line " + prompts[s.i].n + " · direction " + (s.d + 1) + " of " + prompts[s.i].dirs.length + (prompts[s.i].dirWho[s.d] ? " · " + prompts[s.i].dirWho[s.d] : "") : "Prompt " + (s.i + 1) + " of " + prompts.length;
     $("darkBtn").classList.toggle("lit", dark);
     $("darkBtn").textContent = dark ? "Blackout ON" : "Blackout";
@@ -734,6 +736,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   function jump(k) { idx = Math.max(0, Math.min(slides.length - 1, k)); update(); }
   function toggleDark() { dark = !dark; update(); }
   function credIdx() { for (var k = 0; k < slides.length; k++) if (slides[k].t === "credits") return k; return -1; }
+  function winnerIdx() { for (var k = 0; k < slides.length; k++) if (slides[k].t === "winner") return k; return endIdx(); }
   function endIdx() { for (var k = 0; k < slides.length; k++) if (slides[k].t === "end") return k; return slides.length - 1; }
   function onCredits() { return slides[idx] && slides[idx].t === "credits"; }
   function rollCredits() { var k = credIdx(); if (k === -1) return; if (k === idx) { restartCredits(); return; } jump(k); }
@@ -748,7 +751,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
 
   document.querySelector(".transport").addEventListener("click", function (e) {
     var b = e.target.closest("[data-act]"); if (!b) return;
-    ({ prev: function () { go(-1); }, next: function () { go(1); }, dark: toggleDark, home: function () { jump(0); }, end: function () { jump(endIdx()); }, credits: function () { if (!(credItems.length || performers.length)) { setTab("credits"); $("credText").focus(); } else if (onCredits()) pauseCredits(); else rollCredits(); } })[b.dataset.act]();
+    ({ prev: function () { go(-1); }, next: function () { go(1); }, dark: toggleDark, home: function () { jump(0); }, end: function () { jump(endIdx()); }, winner: function () { jump(winnerIdx()); }, credits: function () { if (!(credItems.length || performers.length)) { setTab("credits"); $("credText").focus(); } else if (onCredits()) pauseCredits(); else rollCredits(); } })[b.dataset.act]();
   });
 
   // ================= Previews =================
@@ -1249,6 +1252,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     if (key === "b" || key === "B" || key === ".") { toggleDark(); return true; }
     if (key === "Home") { jump(0); return true; }
     if (key === "End") { jump(endIdx()); return true; }
+    if (key === "w" || key === "W") { jump(winnerIdx()); return true; }
     if (key === "c" || key === "C") { rollCredits(); return true; }
     if (key === "z" || key === "Z") { playBuzzer(); return true; }
     if (onCredits() && (key === "p" || key === "P" || key === "k" || key === "K")) { pauseCredits(); return true; }
