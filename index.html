@@ -433,6 +433,12 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   // ================= Prompts & slides =================
   var ta = $("prompts"), nameIn = $("showName"), numCard = $("numCard"), showSec = $("showSec"), showDots = $("showDots");
   ta.value = store.get("bab.prompts") != null ? store.get("bab.prompts") : EXAMPLES;
+  // One-time switch to the final show script (Nov. 22). The previous script is kept for undo.
+  var FINAL_VER = "final-2026-11-22", finalSwap = null;
+  if (store.get("bab.scriptVer") !== FINAL_VER) {
+    if (ta.value.indexOf("Delivery D\u2019lympics") === -1) { finalSwap = ta.value; store.set("bab.prompts.backup", ta.value); ta.value = EXAMPLES; store.set("bab.prompts", EXAMPLES); }
+    store.set("bab.scriptVer", FINAL_VER);
+  }
   nameIn.value = store.get("bab.name") || "";
   numCard.checked = store.get("bab.numCard") === "1";
   showSec.checked = store.get("bab.sec") !== "0";
@@ -611,7 +617,8 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     }).join("\n\n");
     saveOpts(); rebuild();
   };
-  var tmplArmed = false, tmplUndo = null, tmplT = 0, TMPL = "Load final show script";
+  var tmplArmed = false, tmplUndo = finalSwap, tmplT = 0, TMPL = "Load final show script";
+  if (finalSwap != null) { $("tmplBtn").textContent = "Final script loaded. Undo?"; }
   $("tmplBtn").onclick = function () {
     var b = this; clearTimeout(tmplT);
     if (tmplUndo != null) { ta.value = tmplUndo; tmplUndo = null; saveOpts(); rebuild(); b.textContent = TMPL; return; }
