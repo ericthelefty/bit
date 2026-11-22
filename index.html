@@ -117,6 +117,12 @@ ol.list li.panel { grid-template-columns: 2em 1fr auto; align-items: start; }
 ol.list .dirs li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: start; padding: 5px 7px; border-radius: 5px; background: var(--panel); border-left: 2px solid var(--line); font-size: 12.5px; cursor: pointer; }
 ol.list .dirs li:hover { border-left-color: var(--dim); }
 ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
+.imglist { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 8px 0; }
+.imgitem { background: var(--house); border: 1px solid var(--line); border-radius: 8px; padding: 6px; display: grid; gap: 4px; }
+.imgitem img { width: 100%; height: 90px; object-fit: contain; background: #0c0b10; border-radius: 4px; }
+.imgitem .row { flex-wrap: nowrap; gap: 4px; }
+.imgitem input { min-width: 0; flex: 1; font-size: 13px; padding: 3px 6px; }
+.imgitem button { padding: 2px 8px; }
 .cardsfx { display: flex; align-items: center; gap: 4px; color: var(--bulb); font-size: 13px; flex: 0 0 auto; margin-bottom: 6px; }
 .cardsfx select { max-width: 170px; font-size: 13px; padding: 3px 6px; background: var(--house); color: var(--chalk); border: 1px solid var(--line); border-radius: 6px; }
 .cardsfx select:disabled { opacity: .45; }
@@ -211,7 +217,8 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
         <div class="previews">
           <div class="pvbox">
             <div class="row" style="justify-content:space-between;flex-wrap:nowrap;gap:8px"><div class="lbl" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">On screen <span id="pos"></span></div>
-              <label class="cardsfx" title="Plays when this card comes up. Saved into the script as [sfx: …]">♪ <select id="cardSfx" aria-label="Sound for the card on screen"></select></label></div>
+              <div class="row" style="flex-wrap:nowrap;gap:8px"><label class="cardsfx" id="cardImgL" title="Shows on this card. Saved into the script as [img: …]">🖼 <select id="cardImg" aria-label="Picture for the card on screen"></select></label>
+              <label class="cardsfx" title="Plays when this card comes up. Saved into the script as [sfx: …]">♪ <select id="cardSfx" aria-label="Sound for the card on screen"></select></label></div></div>
             <div class="pv live" id="pvCur"><iframe src="screen.html?preview=cur" title="What the audience sees" tabindex="-1"></iframe></div>
           </div>
           <div class="pvbox">
@@ -313,6 +320,15 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
         </div>
       </div>
       <div class="card">
+        <span class="lbl">Images</span>
+        <div class="row">
+          <label class="btn" style="cursor:pointer">Add images<input type="file" id="imgIn" accept="image/*" multiple hidden></label>
+          <span class="hint" style="margin:0">PNG, JPG, GIF or WebP. Saved in this browser, like sounds.</span>
+        </div>
+        <div class="imglist" id="imgList"></div>
+        <p class="hint">Put a picture on any card with <code>[img: name]</code> on its line, or pick one from the 🖼 menu above the On screen preview on Run show. Built in: <code>[img: trophy]</code> (the chicken trophy) and <code>[img: logo]</code>.</p>
+      </div>
+      <div class="card">
         <span class="lbl">Performers</span>
         <div class="row" style="flex-wrap:nowrap">
           <input type="text" id="perfIn" placeholder="Add a performer's name" aria-label="Performer name">
@@ -328,6 +344,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
         <p class="hint">Add <code>vol:60</code> (or <code>60%</code>) after the link to set that clip's volume, e.g. <code>video: https://youtu.be/abc123XYZ90 vol:40 | Aaron</code>. Moving the console's video volume slider during the clip overrides it.</p>
         <p class="hint">The screen shows the prompt card first. Press Next to play the clip full screen, then Next again to move on. The time range is optional, and a <code>?t=</code> in the link also sets the start.</p>
         <p class="hint"><b style="color:var(--chalk)">Meet the performers:</b> start a section with <code>## Meet the Performers</code> and put one name per line under it. Each Next adds the next name to the card, in the order you write them. Put it wherever you want it in the show, and add <code>[sfx: …]</code> to a name to play walk-on music.</p>
+        <p class="hint"><b style="color:var(--chalk)">Winner card:</b> a heading that starts with <code>## And the Winner Is…</code> shows the winner card, with your heading as its words. Add <code>[img: trophy]</code> for the chicken trophy and <code>[sfx: Drumroll]</code> for a sound. Put it where you want it in the show.</p>
         <p class="hint"><b style="color:var(--chalk)">Minigames:</b> start a section with <code>Minigame: It’s D’improv (Take Some Direction)</code>. The part in parentheses shows as a subtitle on the minigame card.</p>
         <p class="hint"><b style="color:var(--chalk)">Directions:</b> indent bullets under a line and each one becomes its own step. The line stays on screen, small, and each Next reveals the next direction. Add <code>| Name</code> after a direction to show whose turn it is.</p>
         <p class="hint"><code>* “That’s what she said.”</code><br><code>&nbsp;&nbsp;&nbsp;* Italian.</code><br><code>&nbsp;&nbsp;&nbsp;* More Italian.</code></p>
@@ -421,7 +438,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   };
 
-  var EXAMPLES = "# Meet the performers: one name per Next\n## Meet the Performers\n* Aaron Ketzenberger\n* Alisa Patten\n* Rick Toledo\n\n# 1. Minigame\n\nMinigame: It’s Not Delivery, It’s D’improv (Take Some Direction)\n\n* “I’m not in danger, I AM the danger.”\n   * No direction.\n   * Bigger.\n   * Bigger.\n   * You really hate the director.\n   * You need to check your phone during the scene without anyone noticing.\n   * Your best Eric impression.\n* “That’s what she said.”\n   * Italian.\n   * More Italian.\n   * You’re literally a mob boss.\n   * You’re literally a bowl of spaghetti.\n   * Even more Italian.\n   * Italian Michael Scott realizing he crossed the line.\n* “You come at the king, you best not miss.”\n   * Flirty.\n   * Even more flirty.\n   * You’re in love with the first row.\n   * You just found out the first row is cheating on you.\n   * With the first row.\n* “I wish I knew how to quit you.”\n   * Country.\n   * Extra yeehaw.\n   * You’re an auctioneer.\n   * Porky the Pig as an auctioneer.\n* “Just keep swimming.”\n   * Anxious.\n   * Unsure if you know how to swim.\n   * Jaws is right behind you.\n   * Princess Ariel trying out for the track team.\n\n# 2. Prompts for one performer\n\n## For One Performer\n* An undercover alien playing flip cup for the first time.\n* Realizing that wasn’t toothpaste.\n* Frodo asks Sam for space.\n* Your air fryer becomes sentient.\n* When Netflix knows you too well.\n* Auctioneer desperate for the attention of their ex in the audience.\n* The narrator in a fairy tale realizes how problematic the story is.\n* The last surviving dodo bird’s final words.\n* Explaining to your parents that you’re getting legally emancipated because they are TOO supportive.\n\n# 3. Minigame: sound effects\n\nMinigame: Produce a Ruckus!\n* Roller coaster climbing up the first hill.\n* A kettle screaming because it’s ready.\n* World’s largest zipper.\n\n# 4. Prompts for two performers\n\n## For Two Performers\n* Jack is pretty sure there’s room on the floating door for him.\n* HR needs to talk about your peanut butter usage.\n* The sandwich artist needs you to appreciate their art.\n* The more they dislike you the more you’re in love.\n* Cat-Dog after they have surgery to separate their bodies.\n* The fuzzy dice hanging from the rearview mirror find out one of them is a flat earther.\n\n# 5. Minigame: react to YouTube clips\n\nMinigame: Would You Look at That!\n# Happy cows\n* video: https://www.youtube.com/watch?v=uA8dAnlD51o\n\n# 6. Prompts for three performers\n\n## For Three Performers\n* The men’s restroom line is actually very warm and inclusive.\n* Mickey and Donald finally tell Minnie the truth.\n* The crumbs under your fridge unionized against Big Broom.\n* Live, Laugh, and Love brainstorming a rebrand.\n* Three line cooks have no idea what they’re doing.\n* Three delivery drivers competing at the Delivery D’lympics.\n\n# 7. Winner announced, then roll credits (C)";
+  var EXAMPLES = "# Meet the performers: one name per Next\n## Meet the Performers\n* Aaron Ketzenberger\n* Alisa Patten\n* Rick Toledo\n\n# 1. Minigame\n\nMinigame: It’s Not Delivery, It’s D’improv (Take Some Direction)\n\n* “I’m not in danger, I AM the danger.”\n   * No direction.\n   * Bigger.\n   * Bigger.\n   * You really hate the director.\n   * You need to check your phone during the scene without anyone noticing.\n   * Your best Eric impression.\n* “That’s what she said.”\n   * Italian.\n   * More Italian.\n   * You’re literally a mob boss.\n   * You’re literally a bowl of spaghetti.\n   * Even more Italian.\n   * Italian Michael Scott realizing he crossed the line.\n* “You come at the king, you best not miss.”\n   * Flirty.\n   * Even more flirty.\n   * You’re in love with the first row.\n   * You just found out the first row is cheating on you.\n   * With the first row.\n* “I wish I knew how to quit you.”\n   * Country.\n   * Extra yeehaw.\n   * You’re an auctioneer.\n   * Porky the Pig as an auctioneer.\n* “Just keep swimming.”\n   * Anxious.\n   * Unsure if you know how to swim.\n   * Jaws is right behind you.\n   * Princess Ariel trying out for the track team.\n\n# 2. Prompts for one performer\n\n## For One Performer\n* An undercover alien playing flip cup for the first time.\n* Realizing that wasn’t toothpaste.\n* Frodo asks Sam for space.\n* Your air fryer becomes sentient.\n* When Netflix knows you too well.\n* Auctioneer desperate for the attention of their ex in the audience.\n* The narrator in a fairy tale realizes how problematic the story is.\n* The last surviving dodo bird’s final words.\n* Explaining to your parents that you’re getting legally emancipated because they are TOO supportive.\n\n# 3. Minigame: sound effects\n\nMinigame: Produce a Ruckus!\n* Roller coaster climbing up the first hill.\n* A kettle screaming because it’s ready.\n* World’s largest zipper.\n\n# 4. Prompts for two performers\n\n## For Two Performers\n* Jack is pretty sure there’s room on the floating door for him.\n* HR needs to talk about your peanut butter usage.\n* The sandwich artist needs you to appreciate their art.\n* The more they dislike you the more you’re in love.\n* Cat-Dog after they have surgery to separate their bodies.\n* The fuzzy dice hanging from the rearview mirror find out one of them is a flat earther.\n\n# 5. Minigame: react to YouTube clips\n\nMinigame: Would You Look at That!\n# Happy cows\n* video: https://www.youtube.com/watch?v=uA8dAnlD51o\n\n# 6. Prompts for three performers\n\n## For Three Performers\n* The men’s restroom line is actually very warm and inclusive.\n* Mickey and Donald finally tell Minnie the truth.\n* The crumbs under your fridge unionized against Big Broom.\n* Live, Laugh, and Love brainstorming a rebrand.\n* Three line cooks have no idea what they’re doing.\n* Three delivery drivers competing at the Delivery D’lympics.\n\n# 7. Winner announced, then roll credits (C)\n## And the Winner Is… [img: trophy]";
 
   var bc = new BroadcastChannel(BAB.CHANNEL);
   function post(m) { bc.postMessage(m); }
@@ -453,6 +470,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   var credText = $("credText"), credSpeed = $("credSpeed");
   credText.value = store.get("bab.credits") || "";
   credSpeed.value = store.get("bab.credSpeed") || "8";
+  var images = [];   // pictures for [img: name], loaded from IndexedDB further down
   var prompts = [], slides = [], idx = +(store.get("bab.idx") || 0), dark = false;
   var credMusicId = null;
   var credItems = [], roll = null, wasCred = false, credDone = false;
@@ -484,6 +502,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     w.innerHTML = bad.map(function (p) { return "Couldn't read the YouTube link in: <code>" + esc(p.text) + "</code>"; }).join("<br>");
   }
 
+  function imgTag(ref) { return ref ? ' <span class="sfx" title="Picture on this card">🖼 ' + esc(ref) + '</span>' : ""; }
   function sfxTag(ref) {
     if (!ref) return "";
     var ok = !soundsLoaded || !!soundByRef(ref);
@@ -499,22 +518,24 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     if (!prompts.length) { ol.innerHTML = '<li style="cursor:default"><span></span><span class="empty">No prompts yet. Add some on the Script tab.</span></li>'; return; }
     var last = null, meets = prompts.meets || [];
     function meetHd(i) {
-      return meets.map(function (b, bi) {
+      return (prompts.winners || []).map(function (w, wi) {
+        return w.at === i ? '<div class="sechd" data-winner="' + wi + '" tabindex="0" title="Show the winner card">\u{1F3C6} ' + esc(w.text) + sfxTag(w.sfx) + imgTag(w.img) + '</div>' : "";
+      }).join("") + meets.map(function (b, bi) {
         if (b.at !== i) return "";
         return '<div class="sechd" data-meet="' + bi + '" tabindex="0" title="Show the Meet the performers card">Meet the performers</div>' +
-          '<ol class="dirs">' + b.names.map(function (n, k) { return '<li data-mb="' + bi + '" data-mn="' + (k + 1) + '"><span>' + esc(n) + sfxTag(b.sfx[k]) + '</span></li>'; }).join("") + '</ol>';
+          '<ol class="dirs">' + b.names.map(function (n, k) { return '<li data-mb="' + bi + '" data-mn="' + (k + 1) + '"><span>' + esc(n) + sfxTag(b.sfx[k]) + imgTag(b.imgs[k]) + '</span></li>'; }).join("") + '</ol>';
       }).join("");
     }
     ol.innerHTML = prompts.map(function (p, i) {
       var h = meetHd(i);
-      if (p.sec !== last) { last = p.sec; if (p.sec) h += '<div class="sechd" data-first="' + i + '" tabindex="0" title="Show this section\u2019s title card">' + (p.secKind === "minigame" ? '<span class="v" style="background:var(--curtain);color:var(--chalk)">MINIGAME</span>' : "") + esc(p.sec) + sfxTag(p.secSfx) + '</div>'; }
+      if (p.sec !== last) { last = p.sec; if (p.sec) h += '<div class="sechd" data-first="' + i + '" tabindex="0" title="Show this section\u2019s title card">' + (p.secKind === "minigame" ? '<span class="v" style="background:var(--curtain);color:var(--chalk)">MINIGAME</span>' : "") + esc(p.sec) + sfxTag(p.secSfx) + imgTag(p.secImg) + '</div>'; }
       var hasDirs = p.dirs.length > 0;
       var dirs = hasDirs ? '<ol class="dirs">' + p.dirs.map(function (d, k) {
-        return '<li data-i="' + i + '" data-d="' + k + '"><span>' + esc(d) + sfxTag(p.dirSfx[k]) + whoTags(p.dirWho[k]) + '</span>' +
+        return '<li data-i="' + i + '" data-d="' + k + '"><span>' + esc(d) + sfxTag(p.dirSfx[k]) + imgTag(p.dirImg[k]) + whoTags(p.dirWho[k]) + '</span>' +
           '<button class="asg" type="button" data-line="' + p.dirLine[k] + '" data-who="' + esc(p.dirWho[k] || "") + '" data-label="' + esc(d) + '">Assign</button></li>';
       }).join("") + '</ol>' : "";
       return h + '<li data-i="' + i + '" class="panel' + (p.bad ? " bad" : "") + '"><span class="n">' + (i + 1) + '</span><span>' +
-        (p.video ? '<span class="v">VIDEO</span>' : "") + esc(p.text || (p.video ? "(no caption)" : "")) + sfxTag(p.sfx) +
+        (p.video ? '<span class="v">VIDEO</span>' : "") + esc(p.text || (p.video ? "(no caption)" : "")) + sfxTag(p.sfx) + imgTag(p.img) +
         whoTags(p.who) +
         (p.bad ? '<span class="err">' + esc(p.bad) + '</span>' : "") + '</span>' +
         (hasDirs ? '<span></span>' : '<button class="asg" type="button" data-line="' + p.line + '" data-who="' + esc(p.who || "") + '" data-label="' + esc(p.text || "Video") + '">Assign</button>') +
@@ -525,7 +546,8 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   function curPromptIndex() {
     var s = slides[idx]; if (!s) return -1;
     if (s.i != null) return s.i;
-    if (s.t === "winner" || s.t === "end" || s.t === "credits") return prompts.length;
+    if (s.t === "end" || s.t === "credits") return prompts.length;
+    if (s.t === "winner") { for (var w = idx; w < slides.length; w++) if (slides[w].i != null) return slides[w].i - 0.5; return prompts.length; }
     for (var k = idx; k < slides.length; k++) if (slides[k].i != null) return slides[k].i - 0.5;
     return -1;
   }
@@ -556,6 +578,8 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     if (ab) { e.stopPropagation(); openAssign(ab); return; }
     var hd = e.target.closest(".sechd[data-first]");
     if (hd) { jumpToSection(+hd.dataset.first); return; }
+    var wh = e.target.closest("[data-winner]");
+    if (wh) { for (var q1 = 0; q1 < slides.length; q1++) if (slides[q1].t === "winner" && slides[q1].wb === +wh.dataset.winner) { jump(q1); cardSound(slides[q1]); break; } return; }
     var mh = e.target.closest("[data-meet],[data-mb]");
     if (mh) { var mb = +(mh.dataset.meet != null ? mh.dataset.meet : mh.dataset.mb), mn = +(mh.dataset.mn || 1);
       for (var q0 = 0; q0 < slides.length; q0++) if (slides[q0].t === "meet" && slides[q0].mb === mb && slides[q0].n === mn) { jump(q0); cardSound(slides[q0]); break; } return; }
@@ -579,6 +603,11 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
       store.set("bab.prompts", ta.value); rebuild();
     }
     store.set("bab.meetVer", "script-1");
+  }
+  // The winner card now lives in the script too. Add it once, at the end, to a script that doesn't have it.
+  if (store.get("bab.winnerVer") !== "script-1") {
+    if (!/^\s*(##\s*)?and the winner is/im.test(ta.value)) { ta.value = ta.value.replace(/\s+$/, "") + "\n\n## And the Winner Is\u2026 [img: trophy]\n"; store.set("bab.prompts", ta.value); rebuild(); }
+    store.set("bab.winnerVer", "script-1");
   }
   function savePerformers() { store.set("bab.performers", JSON.stringify(performers)); renderPerformers(); rebuild(); }
   function renderPerformers() {
@@ -670,6 +699,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   }
   function view(k) {
     var v = BAB.slideView(slides[k], prompts);
+    if (v && v.imgRef) v.img = imgUrl(v.imgRef);
     if (v && v.t === "credits") {
       // Performers' cut-out names go where [performers] is, or at the top if it isn't there.
       var items = credItems.slice(), pv = perfView();
@@ -689,7 +719,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   function send() { post(stateMsg()); }
 
   function update() {
-    paintCardSfx();
+    paintCardSfx(); paintCardImg();
     store.set("bab.idx", String(idx));
     var s = slides[idx];
     // Entering or leaving the credits starts or stops the roll and its music.
@@ -699,7 +729,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     wasCred = onCred;
     $("credBtn").innerHTML = !(credItems.length || performers.length) ? "Add credits" : !onCred ? "Roll credits <kbd>C</kbd>" : roll && roll.pausedAt ? "Resume credits <kbd>P</kbd>" : "Pause credits <kbd>P</kbd>";
     $("credBtn").classList.toggle("lit", onCred);
-    $("pos").textContent = !s ? "" : s.t === "credits" ? (roll && roll.pausedAt ? "Credits paused" : "Credits rolling (loops)") : s.t === "meet" ? "Meet the performers: " + ((s.names || [])[s.n - 1] || "") : s.t === "title" ? "Welcome card" : s.t === "sec" ? s.sec : s.t === "end" ? "End card" : s.t === "winner" ? "And the winner is…" :
+    $("pos").textContent = !s ? "" : s.t === "credits" ? (roll && roll.pausedAt ? "Credits paused" : "Credits rolling (loops)") : s.t === "meet" ? "Meet the performers: " + ((s.names || [])[s.n - 1] || "") : s.t === "title" ? "Welcome card" : s.t === "sec" ? s.sec : s.t === "end" ? "End card" : s.t === "winner" ? (s.text || "And the winner is…") :
       s.t === "num" ? "Prompt " + (s.i + 1) + " number card" : s.t === "video" ? "Prompt " + (s.i + 1) + " video playing" : s.t === "dir" ? "Line " + prompts[s.i].n + " · direction " + (s.d + 1) + " of " + prompts[s.i].dirs.length + (prompts[s.i].dirWho[s.d] ? " · " + prompts[s.i].dirWho[s.d] : "") : "Prompt " + (s.i + 1) + " of " + prompts.length;
     $("darkBtn").classList.toggle("lit", dark);
     $("darkBtn").textContent = dark ? "Blackout ON" : "Blackout";
@@ -757,6 +787,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     if (s.t === "dir") return prompts[s.i].dirLine[s.d];
     if (s.t === "sec") { for (var k = idx; k < slides.length; k++) if (slides[k].i != null) return prompts[slides[k].i].secLine; return -1; }
     if (s.t === "meet" && prompts.meets && prompts.meets[s.mb]) return prompts.meets[s.mb].lines[s.n - 1];
+    if (s.t === "winner" && s.line != null) return s.line;
     return -1;
   }
   function slideSfx(s) {
@@ -774,6 +805,18 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     sel.disabled = ln < 0;
     sel.parentNode.title = ln < 0 ? "This card isn\u2019t part of the script, so it can\u2019t have a sound" : "Plays when this card comes up. Saved into the script as [sfx: \u2026]";
   }
+  function paintCardImg() {
+    var sel = $("cardImg"); if (!sel || document.activeElement === sel) return;
+    var s = slides[idx], ln = slideLine(s), cur = s && s.img || "", hit = cur ? imgFind(cur) : null;
+    var o = '<option value="">No picture</option>' + BAB.BUILTIN_IMAGES.map(function (b) { return '<option value="' + esc(b.name) + '">' + esc(b.label) + '</option>'; }).join("") +
+      images.map(function (x) { return '<option value="' + esc(x.name) + '">' + esc(x.name) + '</option>'; }).join("");
+    if (cur && !hit) o += '<option value="' + esc(cur) + '">' + esc(cur) + ' (not found)</option>';
+    sel.innerHTML = o; sel.value = hit ? hit.name : cur; sel.disabled = ln < 0 || (s && s.t === "video");
+  }
+  $("cardImg").addEventListener("change", function () {
+    var ln = slideLine(slides[idx]); if (ln < 0) return;
+    ta.value = BAB.setLineImg(ta.value, ln, this.value); saveOpts(); this.blur(); rebuild();
+  });
   $("cardSfx").addEventListener("change", function () {
     var ln = slideLine(slides[idx]); if (ln < 0) return;
     ta.value = BAB.setLineSfx(ta.value, ln, this.value); saveOpts(); this.blur(); rebuild();
@@ -1034,15 +1077,20 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   // ---- IndexedDB storage for sound files ----
   function db() {
     return new Promise(function (res, rej) {
-      var r = indexedDB.open("build-a-bit", 1);
-      r.onupgradeneeded = function () { r.result.createObjectStore("sounds", { keyPath: "id" }); };
+      var r = indexedDB.open("build-a-bit", 2);
+      r.onupgradeneeded = function () {
+        var d = r.result;
+        if (!d.objectStoreNames.contains("sounds")) d.createObjectStore("sounds", { keyPath: "id" });
+        if (!d.objectStoreNames.contains("images")) d.createObjectStore("images", { keyPath: "id" });
+      };
       r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); };
     });
   }
-  function dbDo(mode, fn) {
+  function dbDo(mode, fn, storeName) {
+    storeName = storeName || "sounds";
     return db().then(function (d) {
       return new Promise(function (res, rej) {
-        var t = d.transaction("sounds", mode), req = fn(t.objectStore("sounds"));
+        var t = d.transaction(storeName, mode), req = fn(t.objectStore(storeName));
         t.oncomplete = function () { res(req && req.result); }; t.onerror = function () { rej(t.error); };
       });
     });
@@ -1066,6 +1114,51 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
       });
     }).catch(function () {});
   }
+
+  // ---- Pictures for cards ([img: name]) ----
+  function imgFind(ref) {
+    var r = String(ref).trim().toLowerCase();
+    for (var b = 0; b < BAB.BUILTIN_IMAGES.length; b++) if (BAB.BUILTIN_IMAGES[b].name === r) return { name: BAB.BUILTIN_IMAGES[b].name, url: BAB.BUILTIN_IMAGES[b].src };
+    for (var i = 0; i < images.length; i++) if (images[i].name.toLowerCase() === r) return images[i];
+    for (var j = 0; j < images.length; j++) if (images[j].name.toLowerCase().indexOf(r) === 0) return images[j];
+    return null;
+  }
+  function imgUrl(ref) { var h = imgFind(ref); return h ? h.url : ""; }
+  function imgRec(x) { return { id: x.id, name: x.name, blob: x.blob }; }
+  function renderImgs() {
+    $("imgList").innerHTML = images.length ? images.map(function (x) {
+      return '<div class="imgitem" data-id="' + x.id + '"><img src="' + x.url + '" alt=""><div class="row"><input type="text" value="' + esc(x.name) + '" aria-label="Picture name" data-f="iname"><button class="btn" type="button" data-a="idel" title="Delete">×</button></div></div>';
+    }).join("") : '<span class="hint">No pictures yet.</span>';
+  }
+  function imagesChanged() { renderImgs(); paintCardImg(); renderList(); send(); }
+  function loadImages() {
+    if (!window.indexedDB) return;
+    dbDo("readonly", function (st) { return st.getAll(); }, "images").then(function (all) {
+      images = (all || []).map(function (x) { x.url = URL.createObjectURL(x.blob); return x; });
+      imagesChanged();
+    }).catch(function () {});
+  }
+  $("imgIn").addEventListener("change", function () {
+    Array.prototype.slice.call(this.files).forEach(function (f) {
+      if (!/^image\//.test(f.type)) return;
+      var x = { id: "i" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: f.name.replace(/\.[^.]+$/, ""), blob: f };
+      x.url = URL.createObjectURL(f); images.push(x);
+      dbDo("readwrite", function (st) { return st.put(imgRec(x)); }, "images");
+    });
+    this.value = ""; imagesChanged();
+  });
+  $("imgList").addEventListener("change", function (e) {
+    var it = e.target.closest(".imgitem"); if (!it || e.target.dataset.f !== "iname") return;
+    var x = images.filter(function (y) { return y.id === it.dataset.id; })[0]; if (!x) return;
+    x.name = e.target.value.trim() || x.name; dbDo("readwrite", function (st) { return st.put(imgRec(x)); }, "images"); imagesChanged();
+  });
+  $("imgList").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-a=idel]"); if (!b) return;
+    var id = b.closest(".imgitem").dataset.id;
+    images = images.filter(function (y) { return y.id !== id; });
+    dbDo("readwrite", function (st) { return st.delete(id); }, "images"); imagesChanged();
+  });
+  loadImages();
 
   function addFiles(files) {
     if (!AC) { alert("This browser can't play audio files."); return; }
