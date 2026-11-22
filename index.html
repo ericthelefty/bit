@@ -131,12 +131,21 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
 .guide th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--bulb); padding: 4px 8px 6px 0; }
 .guide td { padding: 6px 8px 6px 0; border-top: 1px solid var(--line); vertical-align: top; }
 .guide td:first-child { color: var(--chalk); font-weight: 700; white-space: nowrap; }
-.imglist { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 8px 0; }
-.imgitem { background: var(--house); border: 1px solid var(--line); border-radius: 8px; padding: 6px; display: grid; gap: 4px; }
-.imgitem img { width: 100%; height: 90px; object-fit: contain; background: #0c0b10; border-radius: 4px; }
-.imgitem .row { flex-wrap: nowrap; gap: 4px; }
-.imgitem input { min-width: 0; flex: 1; font-size: 13px; padding: 3px 6px; }
-.imgitem button { padding: 2px 8px; }
+.imgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-top: 14px; }
+.imgitem { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: grid; gap: 8px; }
+.imgitem .thumb { width: 100%; height: 150px; object-fit: contain; background: repeating-conic-gradient(#1c1a24 0 25%, #14121c 0 50%) 0 0 / 16px 16px; border-radius: 8px; cursor: zoom-in; display: block; }
+.imgitem .row { flex-wrap: nowrap; gap: 6px; }
+.imgitem input[type=text] { min-width: 0; flex: 1; font-size: 14px; padding: 5px 8px; }
+.imgitem .meta { display: flex; justify-content: space-between; gap: 6px; font-size: 12.5px; color: var(--dim); }
+.imgitem .meta code { font-size: 12px; }
+.imgitem .acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.imgitem .acts .btn { padding: 4px 10px; font-size: 13px; }
+.imgitem.builtin { opacity: .9; }
+.imgitem.builtin .tagb { color: var(--bulb); font-weight: 700; }
+#imgView { position: fixed; inset: 0; z-index: 70; background: rgba(10,9,14,.9); display: grid; place-items: center; align-content: center; gap: 12px; cursor: zoom-out; padding: 30px; }
+#imgView img { max-width: 92vw; max-height: 82vh; object-fit: contain; }
+#imgView span { color: var(--chalk); font-weight: 700; }
+#imgView[hidden] { display: none; }
 .cardwho { margin-bottom: 6px; white-space: nowrap; }
 .cardwho:disabled { opacity: .45; cursor: default; }
 .cardsfx { display: flex; align-items: center; gap: 4px; color: var(--bulb); font-size: 13px; flex: 0 0 auto; margin-bottom: 6px; }
@@ -212,6 +221,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     <button role="tab" data-tab="prompts" aria-selected="false">Script</button>
     <button role="tab" data-tab="credits" aria-selected="false">Credits</button>
     <button role="tab" data-tab="sounds" aria-selected="false">Sounds</button>
+    <button role="tab" data-tab="images" aria-selected="false">Images</button>
   </nav>
   <div class="screenctl">
     <button class="btn" id="scrReload" type="button" hidden title="The audience window is running an older version of the app">Update audience screen</button>
@@ -351,15 +361,6 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
         <label class="check"><input type="checkbox" id="showSec" checked> <span>Show a section card when a new section starts</span></label>
         <label class="check"><input type="checkbox" id="showDots" checked> <span>Show progress dots on screen</span></label>
       </div>
-      <div class="card">
-        <span class="lbl">Images</span>
-        <div class="row">
-          <label class="btn" style="cursor:pointer">Add images<input type="file" id="imgIn" accept="image/*" multiple hidden></label>
-          <span class="hint" style="margin:0">PNG, JPG, GIF or WebP. Saved in this browser, like sounds.</span>
-        </div>
-        <div class="imglist" id="imgList"></div>
-        <p class="hint">Put a picture on any card with <code>[img: name]</code> on its line, or pick one from the 🖼 menu above the On screen preview on Run show. Built in: <code>[img: trophy]</code> (the chicken trophy) and <code>[img: logo]</code>.</p>
-      </div>
       </div>
       <div class="pcol pguide">
       <div class="card guide" id="guide">
@@ -412,7 +413,7 @@ Minigame: Produce a Ruckus!
 <pre>* Training Day but you’re at a vegan bakery. [img: donut] [sfx: Siren] | Alisa &amp; Rick</pre>
           <ul>
             <li><b>Performers:</b> put <code>| Name</code> at the end. Separate names with commas or <code>&amp;</code>. Each name shows in its own red oval. Or press <b>👥 Assign</b> on Run show.</li>
-            <li><b>Picture:</b> <code>[img: name]</code>. Add pictures in the <b>Images</b> box above and use the name shown there. <code>trophy</code> and <code>logo</code> are always there. Or pick one from <b>🖼</b> on Run show.</li>
+            <li><b>Picture:</b> <code>[img: name]</code>. Add pictures on the <b>Images</b> tab and use the name shown there. <code>trophy</code> and <code>logo</code> are always there. Or pick one from <b>🖼</b> on Run show.</li>
             <li><b>Sound:</b> <code>[sfx: name]</code> plays when the card comes up. Use the sound’s name from the Sounds tab, or its pad number like <code>[sfx: 3]</code>. Or pick one from <b>♪</b> on Run show. On <code>## Credits</code>, it’s the credits music. Sounds only ever play when a card asks for them (or when you press the sound board).</li>
           </ul>
         </details>
@@ -525,6 +526,22 @@ Minigame: Produce a Ruckus!
       <div class="warnbox" id="undoBar" hidden style="position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:40;display:flex;gap:14px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.5);background:#2a2538"><span id="undoMsg"></span><button class="btn go" type="button" id="undoBtn">Undo</button></div>
     </div>
   </section>
+
+  <!-- ================= IMAGES ================= -->
+  <section id="tab-images" role="tabpanel" hidden>
+    <div class="stab">
+      <div class="card">
+        <div class="drop" id="imgDrop">
+          <b>Drop pictures here</b>
+          <span>PNG, JPG, GIF, WebP or SVG</span>
+          <label class="btn go">Choose files<input type="file" id="imgIn" multiple accept="image/*" hidden></label>
+        </div>
+        <p class="hint">Pictures are saved in this browser on this Mac, like sounds. Put one on any card with <code>[img: name]</code> on its line in the script, or pick it from the 🖼 menu above the On screen preview on Run show. Renaming a picture here updates its tags in the script.</p>
+      </div>
+      <div class="imgrid" id="imgList"></div>
+    </div>
+    <div id="imgView" hidden><img id="imgViewPic" alt=""><span id="imgViewName"></span></div>
+  </section>
 </main>
 
 <div id="asgPop" hidden role="dialog" aria-label="Assign performers">
@@ -551,9 +568,10 @@ Minigame: Produce a Ruckus!
   // ================= Tabs =================
   function setTab(t) {
     document.querySelectorAll(".tabs button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.tab === t ? "true" : "false"); });
-    ["run", "prompts", "credits", "sounds"].forEach(function (n) { $("tab-" + n).hidden = n !== t; });
+    ["run", "prompts", "credits", "sounds", "images"].forEach(function (n) { $("tab-" + n).hidden = n !== t; });
     store.set("bab.tab", t);
     if (t === "run") { sizePreviews(); scrollNow(); }
+    if (t === "images" && typeof renderImgs === "function") renderImgs();
   }
   document.querySelector(".tabs").addEventListener("click", function (e) { var b = e.target.closest("button[data-tab]"); if (b) setTab(b.dataset.tab); });
   document.addEventListener("click", function (e) { var a = e.target.closest("[data-goto]"); if (a) { e.preventDefault(); setTab(a.dataset.goto); } });
@@ -1260,10 +1278,31 @@ Minigame: Produce a Ruckus!
   }
   function imgUrl(ref) { var h = imgFind(ref); return h ? h.url : ""; }
   function imgRec(x) { return { id: x.id, name: x.name, blob: x.blob }; }
+  function imgUses() {   // how many script lines use each picture
+    var counts = {};
+    (ta.value.match(/\[\s*(?:img|image|pic|picture)\s*:\s*([^\]]+)\]/gi) || []).forEach(function (t) {
+      var ref = t.replace(/^\[\s*\w+\s*:\s*/, "").replace(/\]$/, ""), h = imgFind(ref);
+      if (h) counts[h.name.toLowerCase()] = (counts[h.name.toLowerCase()] || 0) + 1;
+    });
+    return counts;
+  }
   function renderImgs() {
-    $("imgList").innerHTML = images.length ? images.map(function (x) {
-      return '<div class="imgitem" data-id="' + x.id + '"><img src="' + x.url + '" alt=""><div class="row"><input type="text" value="' + esc(x.name) + '" aria-label="Picture name" data-f="iname"><button class="btn" type="button" data-a="idel" title="Delete">×</button></div></div>';
-    }).join("") : '<span class="hint">No pictures yet.</span>';
+    var uses = imgUses();
+    function used(n) { var c = uses[n.toLowerCase()] || 0; return c ? "On " + c + (c === 1 ? " card" : " cards") : "Not used yet"; }
+    var built = BAB.BUILTIN_IMAGES.map(function (b) {
+      return '<div class="imgitem builtin"><img class="thumb" src="' + esc(b.src) + '" alt="" data-view="' + esc(b.src) + '" data-name="' + esc(b.label) + '">' +
+        '<div class="row"><b style="flex:1">' + esc(b.label) + '</b><span class="tagb">Built in</span></div>' +
+        '<div class="meta"><code>[img: ' + esc(b.name) + ']</code><span>' + used(b.name) + '</span></div>' +
+        '<div class="acts"><button class="btn" type="button" data-copy="' + esc(b.name) + '">Copy tag</button></div></div>';
+    }).join("");
+    $("imgList").innerHTML = images.map(function (x) {
+      return '<div class="imgitem" data-id="' + x.id + '"><img class="thumb" src="' + x.url + '" alt="" data-view="' + x.url + '" data-name="' + esc(x.name) + '">' +
+        '<div class="row"><input type="text" value="' + esc(x.name) + '" aria-label="Picture name" data-f="iname"></div>' +
+        '<div class="meta"><code>[img: ' + esc(x.name) + ']</code><span>' + used(x.name) + '</span></div>' +
+        '<div class="acts"><button class="btn" type="button" data-copy="' + esc(x.name) + '">Copy tag</button>' +
+        '<label class="btn" style="cursor:pointer">Replace<input type="file" accept="image/*" hidden data-f="irep"></label>' +
+        '<button class="btn danger" type="button" data-a="idel">Delete</button></div></div>';
+    }).join("") + built;
   }
   function imagesChanged() { renderImgs(); paintCardImg(); renderList(); send(); }
   function loadImages() {
@@ -1273,26 +1312,65 @@ Minigame: Produce a Ruckus!
       imagesChanged();
     }).catch(function () {});
   }
-  $("imgIn").addEventListener("change", function () {
-    Array.prototype.slice.call(this.files).forEach(function (f) {
+  function uniqueImgName(n, self) {
+    var base = n, k = 2;
+    while (images.some(function (y) { return y !== self && y.name.toLowerCase() === n.toLowerCase(); }) || BAB.BUILTIN_IMAGES.some(function (b) { return b.name === n.toLowerCase(); })) n = base + " " + k++;
+    return n;
+  }
+  function addImages(files) {
+    try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+    Array.prototype.slice.call(files).forEach(function (f) {
       if (!/^image\//.test(f.type)) return;
-      var x = { id: "i" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: f.name.replace(/\.[^.]+$/, ""), blob: f };
+      var x = { id: "i" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: "", blob: f };
+      x.name = uniqueImgName(f.name.replace(/\.[^.]+$/, ""), x);
       x.url = URL.createObjectURL(f); images.push(x);
       dbDo("readwrite", function (st) { return st.put(imgRec(x)); }, "images");
     });
-    this.value = ""; imagesChanged();
-  });
+    imagesChanged();
+  }
+  $("imgIn").addEventListener("change", function () { addImages(this.files); this.value = ""; });
+  var imgDrop = $("imgDrop");
+  ["dragenter", "dragover"].forEach(function (ev) { imgDrop.addEventListener(ev, function (e) { e.preventDefault(); imgDrop.classList.add("over"); }); });
+  ["dragleave", "drop"].forEach(function (ev) { imgDrop.addEventListener(ev, function () { imgDrop.classList.remove("over"); }); });
+  imgDrop.addEventListener("drop", function (e) { e.preventDefault(); addImages(e.dataTransfer.files); });
+  $("tab-images").addEventListener("dragover", function (e) { e.preventDefault(); });
+  $("tab-images").addEventListener("drop", function (e) { e.preventDefault(); if (!e.target.closest("#imgDrop")) addImages(e.dataTransfer.files); });
+  function imgById(id) { return images.filter(function (y) { return y.id === id; })[0]; }
   $("imgList").addEventListener("change", function (e) {
-    var it = e.target.closest(".imgitem"); if (!it || e.target.dataset.f !== "iname") return;
-    var x = images.filter(function (y) { return y.id === it.dataset.id; })[0]; if (!x) return;
-    x.name = e.target.value.trim() || x.name; dbDo("readwrite", function (st) { return st.put(imgRec(x)); }, "images"); imagesChanged();
+    var it = e.target.closest(".imgitem"); if (!it) return;
+    var x = imgById(it.dataset.id); if (!x) return;
+    if (e.target.dataset.f === "iname") {
+      var old = x.name, nw = uniqueImgName(e.target.value.trim() || old, x);
+      if (nw === old) { e.target.value = old; return; }
+      x.name = nw;
+      // Keep the script's tags pointing at this picture.
+      var re = new RegExp("\\[(\\s*(?:img|image|pic|picture)\\s*:\\s*)" + old.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(\\s*)\\]", "gi");
+      var nt = ta.value.replace(re, "[$1" + nw + "$2]"); if (nt !== ta.value) { ta.value = nt; saveOpts(); rebuild(); }
+      dbDo("readwrite", function (st) { return st.put(imgRec(x)); }, "images"); imagesChanged();
+    }
+    if (e.target.dataset.f === "irep" && e.target.files[0]) {
+      var f = e.target.files[0]; if (!/^image\//.test(f.type)) return;
+      try { URL.revokeObjectURL(x.url); } catch (er) {}
+      x.blob = f; x.url = URL.createObjectURL(f);
+      dbDo("readwrite", function (st) { return st.put(imgRec(x)); }, "images"); imagesChanged();
+    }
   });
+  var imgDelArm = null, imgDelT = 0;
   $("imgList").addEventListener("click", function (e) {
+    var v = e.target.closest("[data-view]");
+    if (v) { $("imgViewPic").src = v.dataset.view; $("imgViewName").textContent = v.dataset.name; $("imgView").hidden = false; return; }
+    var cp = e.target.closest("[data-copy]");
+    if (cp) { var tag = "[img: " + cp.dataset.copy + "]"; try { navigator.clipboard.writeText(tag); } catch (er) {} cp.textContent = "Copied"; setTimeout(function () { cp.textContent = "Copy tag"; }, 1200); return; }
     var b = e.target.closest("[data-a=idel]"); if (!b) return;
     var id = b.closest(".imgitem").dataset.id;
+    if (imgDelArm !== id) { imgDelArm = id; b.textContent = "Delete? Click again"; clearTimeout(imgDelT); imgDelT = setTimeout(function () { imgDelArm = null; renderImgs(); }, 3000); return; }
+    imgDelArm = null;
+    var x = imgById(id); if (x) { try { URL.revokeObjectURL(x.url); } catch (er) {} }
     images = images.filter(function (y) { return y.id !== id; });
     dbDo("readwrite", function (st) { return st.delete(id); }, "images"); imagesChanged();
   });
+  $("imgView").onclick = function () { this.hidden = true; };
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("imgView").hidden) { $("imgView").hidden = true; } }, true);
   loadImages();
 
   function addFiles(files) {
