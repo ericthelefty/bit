@@ -557,6 +557,10 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   // ================= Performers & assignments =================
   var performers = [];
   try { performers = JSON.parse(store.get("bab.performers") || "[]"); } catch (e) { performers = []; }
+  // Show-night cast: fill it in if the list is empty, and make sure the Meet the performers cards are on (once).
+  var CAST = ["Aaron Ketzenberger", "Alisa Patten", "Rick Toledo"];
+  if (!performers.length) { performers = CAST.slice(); store.set("bab.performers", JSON.stringify(performers)); }
+  if (store.get("bab.castVer") !== "2026-11-22") { meetOn.checked = true; store.set("bab.meet", "1"); store.set("bab.castVer", "2026-11-22"); }
   function savePerformers() { store.set("bab.performers", JSON.stringify(performers)); renderPerformers(); rebuild(); }
   function renderPerformers() {
     $("perfChips").innerHTML = performers.length ? performers.map(function (n, k) { return '<span class="chip">' + esc(n) + '<button type="button" data-k="' + k + '" aria-label="Remove ' + esc(n) + '">×</button></span>'; }).join("") : '<span class="hint">No performers yet.</span>';
