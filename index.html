@@ -518,13 +518,12 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     if (!prompts.length) { ol.innerHTML = '<li style="cursor:default"><span></span><span class="empty">No prompts yet. Add some on the Script tab.</span></li>'; return; }
     var last = null, meets = prompts.meets || [];
     function meetHd(i) {
-      return (prompts.winners || []).map(function (w, wi) {
-        return w.at === i ? '<div class="sechd" data-winner="' + wi + '" tabindex="0" title="Show the winner card">\u{1F3C6} ' + esc(w.text) + sfxTag(w.sfx) + imgTag(w.img) + '</div>' : "";
-      }).join("") + meets.map(function (b, bi) {
-        if (b.at !== i) return "";
-        return '<div class="sechd" data-meet="' + bi + '" tabindex="0" title="Show the Meet the performers card">Meet the performers</div>' +
-          '<ol class="dirs">' + b.names.map(function (n, k) { return '<li data-mb="' + bi + '" data-mn="' + (k + 1) + '"><span>' + esc(n) + sfxTag(b.sfx[k]) + imgTag(b.imgs[k]) + '</span></li>'; }).join("") + '</ol>';
-      }).join("");
+      var bs = [];
+      (prompts.cards || []).forEach(function (c, ci) { if (c.at === i) bs.push({ line: c.line, h: '<div class="sechd" data-card="' + ci + '" tabindex="0" title="Show this card">' + (c.kind === "minigame" ? '<span class="v" style="background:var(--curtain);color:var(--chalk)">MINIGAME</span>' : "") + esc(c.sec) + sfxTag(c.sfx) + imgTag(c.img) + '</div>' }); });
+      (prompts.winners || []).forEach(function (w, wi) { if (w.at === i) bs.push({ line: w.line, h: '<div class="sechd" data-winner="' + wi + '" tabindex="0" title="Show the winner card">\u{1F3C6} ' + esc(w.text) + sfxTag(w.sfx) + imgTag(w.img) + '</div>' }); });
+      meets.forEach(function (b, bi) { if (b.at === i) bs.push({ line: b.line, h: '<div class="sechd" data-meet="' + bi + '" tabindex="0" title="Show the Meet the performers card">Meet the performers</div>' +
+        '<ol class="dirs">' + b.names.map(function (n, k) { return '<li data-mb="' + bi + '" data-mn="' + (k + 1) + '"><span>' + esc(n) + sfxTag(b.sfx[k]) + imgTag(b.imgs[k]) + '</span></li>'; }).join("") + '</ol>' }); });
+      return bs.sort(function (a, b) { return a.line - b.line; }).map(function (b) { return b.h; }).join("");
     }
     ol.innerHTML = prompts.map(function (p, i) {
       var h = meetHd(i);
@@ -578,6 +577,8 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     if (ab) { e.stopPropagation(); openAssign(ab); return; }
     var hd = e.target.closest(".sechd[data-first]");
     if (hd) { jumpToSection(+hd.dataset.first); return; }
+    var ch = e.target.closest("[data-card]");
+    if (ch) { for (var q2 = 0; q2 < slides.length; q2++) if (slides[q2].t === "sec" && slides[q2].cb === +ch.dataset.card) { jump(q2); cardSound(slides[q2]); break; } return; }
     var wh = e.target.closest("[data-winner]");
     if (wh) { for (var q1 = 0; q1 < slides.length; q1++) if (slides[q1].t === "winner" && slides[q1].wb === +wh.dataset.winner) { jump(q1); cardSound(slides[q1]); break; } return; }
     var mh = e.target.closest("[data-meet],[data-mb]");
@@ -785,6 +786,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     if (!s) return -1;
     if ((s.t === "prompt" || s.t === "video" || s.t === "num") && s.i != null) return prompts[s.i].line;
     if (s.t === "dir") return prompts[s.i].dirLine[s.d];
+    if (s.t === "sec" && s.line != null && s.line >= 0) return s.line;
     if (s.t === "sec") { for (var k = idx; k < slides.length; k++) if (slides[k].i != null) return prompts[slides[k].i].secLine; return -1; }
     if (s.t === "meet" && prompts.meets && prompts.meets[s.mb]) return prompts.meets[s.mb].lines[s.n - 1];
     if (s.t === "winner" && s.line != null) return s.line;

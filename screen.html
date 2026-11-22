@@ -212,7 +212,10 @@ body.awake #lost.on { display: block; }
     if (!s) return '<div class="sub">End of the show</div>';
     if (s.t === "title") return '<div class="welcome enter">Welcome to</div><div class="sparkle-wrap" id="sparkles"><img class="logo wiggle" src="logo.png" alt="Build a Bit"></div>' + (sub ? '<div class="sub enter">' + esc(sub) + '</div>' : '') + '<div class="first-ever enter">The first one ever!</div>';
     if (s.t === "sec") {
-      if (s.img) { s = Object.assign({}, s, { art: s.img }); }
+      // A heading with nothing under it is a card of its own: its words, big, with its picture.
+      if (s.solo && s.kind !== "minigame") return '<div class="big-title enter">' + esc(s.sec) + '</div>' + (s.sub ? '<div class="mg-sub enter">' + esc(s.sub) + '</div>' : '') + cardImg(s, true);
+      if (s.img && s.art) { s = Object.assign({}, s, { art: s.img }); }
+      else if (s.img) return '<div class="tag enter">' + (s.kind === "minigame" ? "Minigame" : "Next up") + '</div><div class="big-title' + (s.kind === "minigame" ? " mg" : "") + ' enter">' + esc(s.sec) + '</div>' + (s.sub ? '<div class="mg-sub enter">' + esc(s.sub) + '</div>' : '') + cardImg(s);
       if (s.kind === "minigame" && s.art) {
         // Words before the last comma ("It's Not Delivery,") lead into the title art.
         var ci = s.sec.lastIndexOf(","), lead = ci > 0 ? s.sec.slice(0, ci + 1) : "";

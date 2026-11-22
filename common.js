@@ -1,7 +1,7 @@
 /* Build a Bit: shared helpers for the console (index.html) and the audience screen (screen.html). */
 var BAB = (function () {
   var CHANNEL = "build-a-bit";
-  var BUILD = "2026-11-22.5";   // bump on every change so an open audience window knows it is out of date
+  var BUILD = "2026-11-22.7";   // bump on every change so an open audience window knows it is out of date
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -108,7 +108,9 @@ var BAB = (function () {
   var BUILTIN_IMAGES = [{ name: "trophy", label: "Chicken trophy", src: "art/trophy.png" }, { name: "logo", label: "Build a Bit logo", src: "logo.png" }];
   var BULLET = /^([*\-•–◦▪·]|\d+[.)])\s+/;
   function parse(text) {
-    var sec = { name: "", sub: "", kind: "" }, out = [], lastP = null, meets = [], meet = null, winners = [];
+    var sec = { name: "", sub: "", kind: "" }, out = [], lastP = null, meets = [], meet = null, winners = [], cards = [], secN = 0;
+    // A heading with nothing under it still gets its own title card.
+    function flushSec() { if (sec.name && sec.kind !== "meet" && !secN) cards.push({ at: out.length, sec: sec.name, sub: sec.sub, kind: sec.kind, art: sec.art, sfx: sec.sfx || "", img: sec.img || "", line: sec.line }); }
     String(text || "").split(/\r?\n/).forEach(function (raw, ln) {
       // [sfx: Air horn] anywhere on a line plays that sound when its card comes up.
       var sfx = "";
@@ -117,8 +119,9 @@ var BAB = (function () {
       raw = raw.replace(IMG_TAG, function (m, name) { img = name.trim(); return ""; });
       var l = raw.trim();
       if (!l) return;
+      if (isSection(l)) { flushSec(); secN = 0; }
       if (isSection(l) && sectionInfo(l).kind === "winner") { winners.push({ text: sectionInfo(l).name, sfx: sfx, img: img, line: ln, at: out.length }); sec = { name: "", sub: "", kind: "" }; lastP = null; meet = null; return; }
-      if (isSection(l)) { sec = sectionInfo(l); sec.sfx = sfx; sec.img = img; sec.line = ln; lastP = null; meet = null; if (sec.kind === "meet") { meet = { names: [], sfx: [], imgs: [], lines: [], at: out.length }; meets.push(meet); } return; }
+      if (isSection(l)) { sec = sectionInfo(l); sec.sfx = sfx; sec.img = img; sec.line = ln; lastP = null; meet = null; if (sec.kind === "meet") { meet = { names: [], sfx: [], imgs: [], lines: [], at: out.length, line: ln }; meets.push(meet); } return; }
       if (l.charAt(0) === "#") return;
       // An indented bullet under a line is a direction for that line.
       var indented = /^(\s{2,}|\t)/.test(raw) && BULLET.test(l);
@@ -145,14 +148,16 @@ var BAB = (function () {
         if (pv) { p.video = pv.video; p.text = pv.caption; }
         else { p.bad = "Couldn't read that YouTube link"; }
       }
-      if (p.text || p.video) { out.push(p); lastP = p; }
+      if (p.text || p.video) { out.push(p); lastP = p; secN++; }
     });
+    flushSec();
     // Number lines within their section ("Line 2 of 3").
     var counts = {};
     out.forEach(function (p) { counts[p.sec] = (counts[p.sec] || 0) + 1; p.n = counts[p.sec]; });
     out.forEach(function (p) { p.of = counts[p.sec]; });
     out.meets = meets.filter(function (b) { return b.names.length; });
     out.winners = winners;
+    out.cards = cards;
     return out;
   }
 
@@ -167,18 +172,26 @@ var BAB = (function () {
     function winnerAt(i) {   // "## And the Winner Is…" written into the script
       winners.forEach(function (w, wi) { if (w.at === i) slides.push({ t: "winner", text: w.text, sfx: w.sfx, img: w.img, line: w.line, wb: wi }); });
     }
+    var cards = prompts.cards || [];
+    // Everything that sits between prompts (Meet cards, winner cards, headings with nothing under them), in script order.
+    function blocksAt(i) {
+      var bs = [];
+      meets.forEach(function (b, bi) { if (b.at === i) bs.push({ line: b.line, go: function () { meetOne(b, bi); } }); });
+      winners.forEach(function (w, wi) { if (w.at === i) bs.push({ line: w.line, go: function () { slides.push({ t: "winner", text: w.text, sfx: w.sfx, img: w.img, line: w.line, wb: wi }); } }); });
+      cards.forEach(function (c, ci) { if (c.at === i) bs.push({ line: c.line, go: function () { slides.push({ t: "sec", sec: c.sec, sub: c.sub, kind: c.kind, art: c.art, sfx: c.sfx, img: c.img, line: c.line, cb: ci }); } }); });
+      bs.sort(function (a, b) { return a.line - b.line; }).forEach(function (b) { b.go(); });
+    }
+    function meetOne(b, bi) { b.names.forEach(function (_, k) { slides.push({ t: "meet", n: k + 1, names: b.names, mb: bi, sfx: b.sfx[k], img: b.imgs[k] }); }); }
     prompts.forEach(function (p, i) {
-      winnerAt(i);
-      meetAt(i);
-      if (p.sec && p.sec !== last && opts.showSec) slides.push({ t: "sec", sec: p.sec, sub: p.secSub, kind: p.secKind, art: p.secArt, sfx: p.secSfx, img: p.secImg });
+      blocksAt(i);
+      if (p.sec && p.sec !== last && opts.showSec) slides.push({ t: "sec", sec: p.sec, sub: p.secSub, kind: p.secKind, art: p.secArt, sfx: p.secSfx, img: p.secImg, line: p.secLine });
       last = p.sec;
       if (opts.numCard) slides.push({ t: "num", i: i });
       slides.push({ t: "prompt", i: i, sfx: p.sfx, img: p.img });
       if (p.video) slides.push({ t: "video", i: i });
       p.dirs.forEach(function (_, d) { slides.push({ t: "dir", i: i, d: d, sfx: p.dirSfx[d], img: p.dirImg[d] }); });
     });
-    winnerAt(prompts.length);
-    meetAt(prompts.length);
+    blocksAt(prompts.length);
     slides.push({ t: "end" });
     if (opts.credits) slides.push({ t: "credits" });
     return slides;
@@ -192,7 +205,7 @@ var BAB = (function () {
     if (s.names) v.names = s.names;
     if (s.t === "winner") v.text = s.text;
     if (s.img) v.imgRef = s.img;
-    if (s.sec) { v.sec = s.sec; v.sub = s.sub; v.kind = s.kind; v.art = s.art; }
+    if (s.sec) { v.sec = s.sec; v.sub = s.sub; v.kind = s.kind; v.art = s.art; if (s.cb != null) v.solo = true; }
     if (s.i != null) {
       var p = prompts[s.i];
       v.i = s.i; v.text = p.text; v.who = p.who; v.psec = p.sec; v.video = p.video;
