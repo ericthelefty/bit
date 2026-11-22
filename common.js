@@ -1,7 +1,7 @@
 /* Build a Bit: shared helpers for the console (index.html) and the audience screen (screen.html). */
 var BAB = (function () {
   var CHANNEL = "build-a-bit";
-  var BUILD = "2026-11-22.2";   // bump on every change so an open audience window knows it is out of date
+  var BUILD = "2026-11-22.3";   // bump on every change so an open audience window knows it is out of date
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -111,7 +111,7 @@ var BAB = (function () {
       raw = raw.replace(SFX_TAG, function (m, name) { sfx = name.trim(); return ""; });
       var l = raw.trim();
       if (!l) return;
-      if (isSection(l)) { sec = sectionInfo(l); sec.sfx = sfx; lastP = null; meet = null; if (sec.kind === "meet") { meet = { names: [], sfx: [], lines: [], at: out.length }; meets.push(meet); } return; }
+      if (isSection(l)) { sec = sectionInfo(l); sec.sfx = sfx; sec.line = ln; lastP = null; meet = null; if (sec.kind === "meet") { meet = { names: [], sfx: [], lines: [], at: out.length }; meets.push(meet); } return; }
       if (l.charAt(0) === "#") return;
       // An indented bullet under a line is a direction for that line.
       var indented = /^(\s{2,}|\t)/.test(raw) && BULLET.test(l);
@@ -130,7 +130,7 @@ var BAB = (function () {
       var i = l.indexOf("|");
       var main = i === -1 ? l : l.slice(0, i).trim(), who = i === -1 ? "" : l.slice(i + 1).trim();
       main = main.replace(/^(["“”])["“”]+/, "$1");           // tidy a doubled opening quote
-      var p = { text: main, who: who, sec: sec.name, secSub: sec.sub, secKind: sec.kind, secArt: sec.art, video: null, dirs: [], dirWho: [], dirLine: [], dirSfx: [], line: ln, sfx: sfx, secSfx: sec.sfx || "" };
+      var p = { text: main, who: who, sec: sec.name, secSub: sec.sub, secKind: sec.kind, secArt: sec.art, video: null, dirs: [], dirWho: [], dirLine: [], dirSfx: [], line: ln, sfx: sfx, secSfx: sec.sfx || "", secLine: sec.line != null ? sec.line : -1 };
       var vm = main.match(/^video\s*:\s*(.+)$/i);
       if (vm) {
         var pv = parseVideo(vm[1]);
@@ -223,10 +223,21 @@ var BAB = (function () {
     return lines.join("\n");
   }
 
+  // Put one [sfx: name] tag on a script line (replacing any there); empty name removes it.
+  function setLineSfx(text, ln, name) {
+    var lines = String(text).split(/\r?\n/);
+    if (ln < 0 || ln >= lines.length) return text;
+    var raw = lines[ln].replace(SFX_TAG, ""), bar = raw.indexOf("|");
+    var body = (bar === -1 ? raw : raw.slice(0, bar)).replace(/\s+$/, ""), who = bar === -1 ? "" : raw.slice(bar + 1).trim();
+    if (name) body += " [sfx: " + name + "]";
+    lines[ln] = who ? body + " | " + who : body;
+    return lines.join("\n");
+  }
+
   function vkey(v) { return v ? v.id + "|" + (v.start || 0) + "|" + (v.end || "") : ""; }
 
   return {
     CHANNEL: CHANNEL, BUILD: BUILD, esc: esc, parse: parse, parseTime: parseTime, fmtTime: fmtTime,
-    performerArt: performerArt, splitNames: splitNames, joinNames: joinNames, setLineWho: setLineWho, ytParse: ytParse, parseCredits: parseCredits, buildSlides: buildSlides, slideView: slideView, vkey: vkey
+    performerArt: performerArt, splitNames: splitNames, joinNames: joinNames, setLineWho: setLineWho, setLineSfx: setLineSfx, ytParse: ytParse, parseCredits: parseCredits, buildSlides: buildSlides, slideView: slideView, vkey: vkey
   };
 })();

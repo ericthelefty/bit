@@ -117,6 +117,9 @@ ol.list li.panel { grid-template-columns: 2em 1fr auto; align-items: start; }
 ol.list .dirs li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: start; padding: 5px 7px; border-radius: 5px; background: var(--panel); border-left: 2px solid var(--line); font-size: 12.5px; cursor: pointer; }
 ol.list .dirs li:hover { border-left-color: var(--dim); }
 ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
+.cardsfx { display: flex; align-items: center; gap: 4px; color: var(--bulb); font-size: 13px; flex: 0 0 auto; margin-bottom: 6px; }
+.cardsfx select { max-width: 170px; font-size: 13px; padding: 3px 6px; background: var(--house); color: var(--chalk); border: 1px solid var(--line); border-radius: 6px; }
+.cardsfx select:disabled { opacity: .45; }
 #asgPop { position: fixed; z-index: 70; width: 240px; background: var(--panel); border: 1px solid var(--bulb); border-radius: 10px; padding: 10px; display: grid; gap: 6px; box-shadow: 0 14px 40px rgba(0,0,0,.6); }
 #asgPop .check { font-size: 14px; }
 .sechd { font-family: var(--display); font-weight: 900; text-transform: uppercase; letter-spacing: .06em; font-size: 15px; margin: 8px 0 1px; cursor: pointer; padding: 3px 6px; border-radius: 5px; }
@@ -207,7 +210,8 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
       <div class="mid">
         <div class="previews">
           <div class="pvbox">
-            <div class="lbl">On screen <span id="pos"></span></div>
+            <div class="row" style="justify-content:space-between;flex-wrap:nowrap;gap:8px"><div class="lbl" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">On screen <span id="pos"></span></div>
+              <label class="cardsfx" title="Plays when this card comes up. Saved into the script as [sfx: …]">♪ <select id="cardSfx" aria-label="Sound for the card on screen"></select></label></div>
             <div class="pv live" id="pvCur"><iframe src="screen.html?preview=cur" title="What the audience sees" tabindex="-1"></iframe></div>
           </div>
           <div class="pvbox">
@@ -685,6 +689,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   function send() { post(stateMsg()); }
 
   function update() {
+    paintCardSfx();
     store.set("bab.idx", String(idx));
     var s = slides[idx];
     // Entering or leaving the credits starts or stops the roll and its music.
@@ -745,6 +750,35 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   $("sbMin").onclick = function () { setBoardMini(true); };
   $("sbOpen").onclick = function () { setBoardMini(false); };
   setBoardMini(store.get("bab.sbmini") === "1");
+  // ---- Sound for the card on screen (writes [sfx: …] into that card's script line) ----
+  function slideLine(s) {
+    if (!s) return -1;
+    if ((s.t === "prompt" || s.t === "video" || s.t === "num") && s.i != null) return prompts[s.i].line;
+    if (s.t === "dir") return prompts[s.i].dirLine[s.d];
+    if (s.t === "sec") { for (var k = idx; k < slides.length; k++) if (slides[k].i != null) return prompts[slides[k].i].secLine; return -1; }
+    if (s.t === "meet" && prompts.meets && prompts.meets[s.mb]) return prompts.meets[s.mb].lines[s.n - 1];
+    return -1;
+  }
+  function slideSfx(s) {
+    if (!s) return "";
+    if (s.t === "video" || s.t === "num") return s.i != null ? prompts[s.i].sfx : "";
+    return s.sfx || "";
+  }
+  function paintCardSfx() {
+    var sel = $("cardSfx"); if (!sel || document.activeElement === sel) return;
+    var list = typeof sounds !== "undefined" && sounds ? sounds : [];
+    var s = slides[idx], ln = slideLine(s), cur = slideSfx(s), hit = cur && list.length ? soundByRef(cur) : null;
+    var opts = '<option value="">No sound</option>' + list.map(function (x) { return '<option value="' + esc(x.name) + '">' + esc(x.name) + '</option>'; }).join("");
+    if (cur && !hit) opts += '<option value="' + esc(cur) + '">' + esc(cur) + ' (not on Sounds tab)</option>';
+    sel.innerHTML = opts; sel.value = hit ? hit.name : cur;
+    sel.disabled = ln < 0;
+    sel.parentNode.title = ln < 0 ? "This card isn\u2019t part of the script, so it can\u2019t have a sound" : "Plays when this card comes up. Saved into the script as [sfx: \u2026]";
+  }
+  $("cardSfx").addEventListener("change", function () {
+    var ln = slideLine(slides[idx]); if (ln < 0) return;
+    ta.value = BAB.setLineSfx(ta.value, ln, this.value); saveOpts(); this.blur(); rebuild();
+    var snd = this.value ? soundByRef(this.value) : null; if (snd) playSound(snd, true);
+  });
   function soundByRef(ref) {
     var r = String(ref).trim().toLowerCase(), n = r.replace(/^#/, "");
     for (var i = 0; i < sounds.length; i++) if (sounds[i].name.toLowerCase() === r) return sounds[i];
@@ -982,6 +1016,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     });
   }
   function renderPads() {
+    paintCardSfx();
     $("pads").innerHTML = sounds.map(function (s, i) {
       return '<button type="button" class="pad" data-id="' + s.id + '"><b>' + (keyLabel(i) || "·") + '</b><span>' + esc(s.name) + '</span>' + (s.loop ? '<em>↻ loop</em>' : '') + '<i class="prog"></i></button>';
     }).join("");
