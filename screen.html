@@ -206,11 +206,22 @@ body.awake #lost.on { display: block; }
     return '<div class="names enter">' + names.map(function (n) { return '<span class="players">' + esc(n) + '</span>'; }).join("") + '</div>';
   }
   function cardImg(s, tall) { return s && s.img ? '<img class="card-img enter' + (tall ? " tall" : "") + '" src="' + esc(s.img) + '" alt="">' : ""; }
+  // Headings, winner, welcome and end cards can carry performers too ("## Heading | Rick").
   function slideHtml(s, st) {
+    var h = slideHtml0(s, st);
+    if (s && s.who && /^(sec|winner|title|end)$/.test(s.t)) h += namesHtml(s.who, "");
+    return h;
+  }
+  function slideHtml0(s, st) {
     var sub = st.name && !/^build a bit$/i.test(st.name) ? st.name : "";
     var logo = '<img class="logo enter" src="logo.png" alt="Build a Bit">';
     if (!s) return '<div class="sub">End of the show</div>';
-    if (s.t === "title") return '<div class="welcome enter">Welcome to</div><div class="sparkle-wrap" id="sparkles"><img class="logo wiggle" src="logo.png" alt="Build a Bit"></div>' + (sub ? '<div class="sub enter">' + esc(sub) + '</div>' : '') + '<div class="first-ever enter">The first one ever!</div>';
+    if (s.t === "blank") return "";
+    if (s.t === "title") {
+      var lg = s.img ? '<div class="sparkle-wrap" id="sparkles"><img class="logo wiggle" src="' + esc(s.img) + '" alt=""></div>' : "";
+      return (s.text ? '<div class="welcome enter">' + esc(s.text) + '</div>' : "") + lg + (sub ? '<div class="sub enter">' + esc(sub) + '</div>' : '') +
+        (s.lines || []).map(function (t) { return '<div class="first-ever enter">' + esc(t) + '</div>'; }).join("");
+    }
     if (s.t === "sec") {
       // A heading with nothing under it is a card of its own: its words, big, with its picture.
       if (s.solo && s.kind !== "minigame") return '<div class="big-title enter">' + esc(s.sec) + '</div>' + (s.sub ? '<div class="mg-sub enter">' + esc(s.sub) + '</div>' : '') + cardImg(s, true);
@@ -251,7 +262,9 @@ body.awake #lost.on { display: block; }
     }
     if (s.t === "video") return "";
     if (s.t === "winner") return '<div class="welcome enter">' + esc(s.text || "And the winner is…") + '</div>' + (s.img ? '<div class="sparkle-wrap" id="sparkles"><img class="trophy wiggle" src="' + esc(s.img) + '" alt=""></div>' : "");
-    return '<div class="big-title enter">Thanks for coming!</div><img class="logo small wiggle" src="logo.png" alt="Build a Bit">' + (sub ? '<div class="sub enter">' + esc(sub) + '</div>' : '');
+    if (s.t === "end") return (s.text ? '<div class="big-title enter">' + esc(s.text) + '</div>' : "") + (s.img ? '<img class="logo small wiggle" src="' + esc(s.img) + '" alt="">' : "") +
+      (sub ? '<div class="sub enter">' + esc(sub) + '</div>' : '') + (s.lines || []).map(function (t) { return '<div class="sub enter">' + esc(t) + '</div>'; }).join("");
+    return "";
   }
 
   function render(st) {

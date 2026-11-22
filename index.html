@@ -123,6 +123,8 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
 .imgitem .row { flex-wrap: nowrap; gap: 4px; }
 .imgitem input { min-width: 0; flex: 1; font-size: 13px; padding: 3px 6px; }
 .imgitem button { padding: 2px 8px; }
+.cardwho { margin-bottom: 6px; white-space: nowrap; }
+.cardwho:disabled { opacity: .45; cursor: default; }
 .cardsfx { display: flex; align-items: center; gap: 4px; color: var(--bulb); font-size: 13px; flex: 0 0 auto; margin-bottom: 6px; }
 .cardsfx select { max-width: 170px; font-size: 13px; padding: 3px 6px; background: var(--house); color: var(--chalk); border: 1px solid var(--line); border-radius: 6px; }
 .cardsfx select:disabled { opacity: .45; }
@@ -218,7 +220,8 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
           <div class="pvbox">
             <div class="row" style="justify-content:space-between;flex-wrap:nowrap;gap:8px"><div class="lbl" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">On screen <span id="pos"></span></div>
               <div class="row" style="flex-wrap:nowrap;gap:8px"><label class="cardsfx" id="cardImgL" title="Shows on this card. Saved into the script as [img: …]">🖼 <select id="cardImg" aria-label="Picture for the card on screen"></select></label>
-              <label class="cardsfx" title="Plays when this card comes up. Saved into the script as [sfx: …]">♪ <select id="cardSfx" aria-label="Sound for the card on screen"></select></label></div></div>
+              <label class="cardsfx" title="Plays when this card comes up. Saved into the script as [sfx: …]">♪ <select id="cardSfx" aria-label="Sound for the card on screen"></select></label>
+              <button class="asg cardwho" type="button" id="cardWho" data-line="-1" data-who="" data-label="">👥 Assign</button></div></div>
             <div class="pv live" id="pvCur"><iframe src="screen.html?preview=cur" title="What the audience sees" tabindex="-1"></iframe></div>
           </div>
           <div class="pvbox">
@@ -343,6 +346,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
         <p class="hint"><code>video: https://youtu.be/abc123XYZ90 0:30-1:45 Dub this nature doc | Dana &amp; Luis</code></p>
         <p class="hint">Add <code>vol:60</code> (or <code>60%</code>) after the link to set that clip's volume, e.g. <code>video: https://youtu.be/abc123XYZ90 vol:40 | Aaron</code>. Moving the console's video volume slider during the clip overrides it.</p>
         <p class="hint">The screen shows the prompt card first. Press Next to play the clip full screen, then Next again to move on. The time range is optional, and a <code>?t=</code> in the link also sets the start.</p>
+        <p class="hint"><b style="color:var(--chalk)">Every card is in the script.</b> <code>## Welcome to [img: logo]</code> is the welcome card; lines under it (like <code>* The first one ever!</code>) show under the logo. <code>## End: Thanks for coming! [img: logo]</code> is the end card with confetti. <code>## Credits</code> rolls the credits from the Credits tab; put <code>[sfx: Song]</code> on it for credits music. A <code>## Heading</code> with nothing under it is a card of its own. Any line or heading can take <code>[img: …]</code>, <code>[sfx: …]</code> and <code>| Names</code>, or set them for the card on screen with the 🖼, ♪ and 👥 buttons on Run show.</p>
         <p class="hint"><b style="color:var(--chalk)">Meet the performers:</b> start a section with <code>## Meet the Performers</code> and put one name per line under it. Each Next adds the next name to the card, in the order you write them. Put it wherever you want it in the show, and add <code>[sfx: …]</code> to a name to play walk-on music.</p>
         <p class="hint"><b style="color:var(--chalk)">Winner card:</b> a heading that starts with <code>## And the Winner Is…</code> shows the winner card, with your heading as its words. Add <code>[img: trophy]</code> for the chicken trophy and <code>[sfx: Drumroll]</code> for a sound. Put it where you want it in the show.</p>
         <p class="hint"><b style="color:var(--chalk)">Minigames:</b> start a section with <code>Minigame: It’s D’improv (Take Some Direction)</code>. The part in parentheses shows as a subtitle on the minigame card.</p>
@@ -438,7 +442,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   };
 
-  var EXAMPLES = "# Meet the performers: one name per Next\n## Meet the Performers\n* Aaron Ketzenberger\n* Alisa Patten\n* Rick Toledo\n\n# 1. Minigame\n\nMinigame: It’s Not Delivery, It’s D’improv (Take Some Direction)\n\n* “I’m not in danger, I AM the danger.”\n   * No direction.\n   * Bigger.\n   * Bigger.\n   * You really hate the director.\n   * You need to check your phone during the scene without anyone noticing.\n   * Your best Eric impression.\n* “That’s what she said.”\n   * Italian.\n   * More Italian.\n   * You’re literally a mob boss.\n   * You’re literally a bowl of spaghetti.\n   * Even more Italian.\n   * Italian Michael Scott realizing he crossed the line.\n* “You come at the king, you best not miss.”\n   * Flirty.\n   * Even more flirty.\n   * You’re in love with the first row.\n   * You just found out the first row is cheating on you.\n   * With the first row.\n* “I wish I knew how to quit you.”\n   * Country.\n   * Extra yeehaw.\n   * You’re an auctioneer.\n   * Porky the Pig as an auctioneer.\n* “Just keep swimming.”\n   * Anxious.\n   * Unsure if you know how to swim.\n   * Jaws is right behind you.\n   * Princess Ariel trying out for the track team.\n\n# 2. Prompts for one performer\n\n## For One Performer\n* An undercover alien playing flip cup for the first time.\n* Realizing that wasn’t toothpaste.\n* Frodo asks Sam for space.\n* Your air fryer becomes sentient.\n* When Netflix knows you too well.\n* Auctioneer desperate for the attention of their ex in the audience.\n* The narrator in a fairy tale realizes how problematic the story is.\n* The last surviving dodo bird’s final words.\n* Explaining to your parents that you’re getting legally emancipated because they are TOO supportive.\n\n# 3. Minigame: sound effects\n\nMinigame: Produce a Ruckus!\n* Roller coaster climbing up the first hill.\n* A kettle screaming because it’s ready.\n* World’s largest zipper.\n\n# 4. Prompts for two performers\n\n## For Two Performers\n* Jack is pretty sure there’s room on the floating door for him.\n* HR needs to talk about your peanut butter usage.\n* The sandwich artist needs you to appreciate their art.\n* The more they dislike you the more you’re in love.\n* Cat-Dog after they have surgery to separate their bodies.\n* The fuzzy dice hanging from the rearview mirror find out one of them is a flat earther.\n\n# 5. Minigame: react to YouTube clips\n\nMinigame: Would You Look at That!\n# Happy cows\n* video: https://www.youtube.com/watch?v=uA8dAnlD51o\n\n# 6. Prompts for three performers\n\n## For Three Performers\n* The men’s restroom line is actually very warm and inclusive.\n* Mickey and Donald finally tell Minnie the truth.\n* The crumbs under your fridge unionized against Big Broom.\n* Live, Laugh, and Love brainstorming a rebrand.\n* Three line cooks have no idea what they’re doing.\n* Three delivery drivers competing at the Delivery D’lympics.\n\n# 7. Winner announced, then roll credits (C)\n## And the Winner Is… [img: trophy]";
+  var EXAMPLES = "## Welcome to [img: logo]\n* The first one ever!\n\n# Meet the performers: one name per Next\n## Meet the Performers\n* Aaron Ketzenberger\n* Alisa Patten\n* Rick Toledo\n\n# 1. Minigame\n\nMinigame: It’s Not Delivery, It’s D’improv (Take Some Direction)\n\n* “I’m not in danger, I AM the danger.”\n   * No direction.\n   * Bigger.\n   * Bigger.\n   * You really hate the director.\n   * You need to check your phone during the scene without anyone noticing.\n   * Your best Eric impression.\n* “That’s what she said.”\n   * Italian.\n   * More Italian.\n   * You’re literally a mob boss.\n   * You’re literally a bowl of spaghetti.\n   * Even more Italian.\n   * Italian Michael Scott realizing he crossed the line.\n* “You come at the king, you best not miss.”\n   * Flirty.\n   * Even more flirty.\n   * You’re in love with the first row.\n   * You just found out the first row is cheating on you.\n   * With the first row.\n* “I wish I knew how to quit you.”\n   * Country.\n   * Extra yeehaw.\n   * You’re an auctioneer.\n   * Porky the Pig as an auctioneer.\n* “Just keep swimming.”\n   * Anxious.\n   * Unsure if you know how to swim.\n   * Jaws is right behind you.\n   * Princess Ariel trying out for the track team.\n\n# 2. Prompts for one performer\n\n## For One Performer\n* An undercover alien playing flip cup for the first time.\n* Realizing that wasn’t toothpaste.\n* Frodo asks Sam for space.\n* Your air fryer becomes sentient.\n* When Netflix knows you too well.\n* Auctioneer desperate for the attention of their ex in the audience.\n* The narrator in a fairy tale realizes how problematic the story is.\n* The last surviving dodo bird’s final words.\n* Explaining to your parents that you’re getting legally emancipated because they are TOO supportive.\n\n# 3. Minigame: sound effects\n\nMinigame: Produce a Ruckus!\n* Roller coaster climbing up the first hill.\n* A kettle screaming because it’s ready.\n* World’s largest zipper.\n\n# 4. Prompts for two performers\n\n## For Two Performers\n* Jack is pretty sure there’s room on the floating door for him.\n* HR needs to talk about your peanut butter usage.\n* The sandwich artist needs you to appreciate their art.\n* The more they dislike you the more you’re in love.\n* Cat-Dog after they have surgery to separate their bodies.\n* The fuzzy dice hanging from the rearview mirror find out one of them is a flat earther.\n\n# 5. Minigame: react to YouTube clips\n\nMinigame: Would You Look at That!\n# Happy cows\n* video: https://www.youtube.com/watch?v=uA8dAnlD51o\n\n# 6. Prompts for three performers\n\n## For Three Performers\n* The men’s restroom line is actually very warm and inclusive.\n* Mickey and Donald finally tell Minnie the truth.\n* The crumbs under your fridge unionized against Big Broom.\n* Live, Laugh, and Love brainstorming a rebrand.\n* Three line cooks have no idea what they’re doing.\n* Three delivery drivers competing at the Delivery D’lympics.\n\n# 7. Winner announced, then roll credits (C)\n## And the Winner Is… [img: trophy]\n\n## End: Thanks for coming! [img: logo]\n## Credits";
 
   var bc = new BroadcastChannel(BAB.CHANNEL);
   function post(m) { bc.postMessage(m); }
@@ -519,15 +523,16 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     var last = null, meets = prompts.meets || [];
     function meetHd(i) {
       var bs = [];
-      (prompts.cards || []).forEach(function (c, ci) { if (c.at === i) bs.push({ line: c.line, h: '<div class="sechd" data-card="' + ci + '" tabindex="0" title="Show this card">' + (c.kind === "minigame" ? '<span class="v" style="background:var(--curtain);color:var(--chalk)">MINIGAME</span>' : "") + esc(c.sec) + sfxTag(c.sfx) + imgTag(c.img) + '</div>' }); });
-      (prompts.winners || []).forEach(function (w, wi) { if (w.at === i) bs.push({ line: w.line, h: '<div class="sechd" data-winner="' + wi + '" tabindex="0" title="Show the winner card">\u{1F3C6} ' + esc(w.text) + sfxTag(w.sfx) + imgTag(w.img) + '</div>' }); });
+      var KIND = { welcome: "WELCOME", end: "END CARD", credits: "CREDITS", minigame: "MINIGAME" };
+      (prompts.cards || []).forEach(function (c, ci) { if (c.at === i) bs.push({ line: c.line, h: '<div class="sechd" data-card="' + ci + '" tabindex="0" title="Show this card">' + (KIND[c.kind] ? '<span class="v" style="background:var(--curtain);color:var(--chalk)">' + KIND[c.kind] + '</span>' : "") + esc(c.kind === "credits" ? "" : c.sec) + sfxTag(c.sfx) + imgTag(c.img) + whoTags(c.who) + '</div>' }); });
+      (prompts.winners || []).forEach(function (w, wi) { if (w.at === i) bs.push({ line: w.line, h: '<div class="sechd" data-winner="' + wi + '" tabindex="0" title="Show the winner card">\u{1F3C6} ' + esc(w.text) + sfxTag(w.sfx) + imgTag(w.img) + whoTags(w.who) + '</div>' }); });
       meets.forEach(function (b, bi) { if (b.at === i) bs.push({ line: b.line, h: '<div class="sechd" data-meet="' + bi + '" tabindex="0" title="Show the Meet the performers card">Meet the performers</div>' +
         '<ol class="dirs">' + b.names.map(function (n, k) { return '<li data-mb="' + bi + '" data-mn="' + (k + 1) + '"><span>' + esc(n) + sfxTag(b.sfx[k]) + imgTag(b.imgs[k]) + '</span></li>'; }).join("") + '</ol>' }); });
       return bs.sort(function (a, b) { return a.line - b.line; }).map(function (b) { return b.h; }).join("");
     }
     ol.innerHTML = prompts.map(function (p, i) {
       var h = meetHd(i);
-      if (p.sec !== last) { last = p.sec; if (p.sec) h += '<div class="sechd" data-first="' + i + '" tabindex="0" title="Show this section\u2019s title card">' + (p.secKind === "minigame" ? '<span class="v" style="background:var(--curtain);color:var(--chalk)">MINIGAME</span>' : "") + esc(p.sec) + sfxTag(p.secSfx) + imgTag(p.secImg) + '</div>'; }
+      if (p.sec !== last) { last = p.sec; if (p.sec) h += '<div class="sechd" data-first="' + i + '" tabindex="0" title="Show this section\u2019s title card">' + (p.secKind === "minigame" ? '<span class="v" style="background:var(--curtain);color:var(--chalk)">MINIGAME</span>' : "") + esc(p.sec) + sfxTag(p.secSfx) + imgTag(p.secImg) + whoTags(p.secWho) + '</div>'; }
       var hasDirs = p.dirs.length > 0;
       var dirs = hasDirs ? '<ol class="dirs">' + p.dirs.map(function (d, k) {
         return '<li data-i="' + i + '" data-d="' + k + '"><span>' + esc(d) + sfxTag(p.dirSfx[k]) + imgTag(p.dirImg[k]) + whoTags(p.dirWho[k]) + '</span>' +
@@ -578,7 +583,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     var hd = e.target.closest(".sechd[data-first]");
     if (hd) { jumpToSection(+hd.dataset.first); return; }
     var ch = e.target.closest("[data-card]");
-    if (ch) { for (var q2 = 0; q2 < slides.length; q2++) if (slides[q2].t === "sec" && slides[q2].cb === +ch.dataset.card) { jump(q2); cardSound(slides[q2]); break; } return; }
+    if (ch) { for (var q2 = 0; q2 < slides.length; q2++) if (slides[q2].cb === +ch.dataset.card) { jump(q2); cardSound(slides[q2]); break; } return; }
     var wh = e.target.closest("[data-winner]");
     if (wh) { for (var q1 = 0; q1 < slides.length; q1++) if (slides[q1].t === "winner" && slides[q1].wb === +wh.dataset.winner) { jump(q1); cardSound(slides[q1]); break; } return; }
     var mh = e.target.closest("[data-meet],[data-mb]");
@@ -609,6 +614,15 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   if (store.get("bab.winnerVer") !== "script-1") {
     if (!/^\s*(##\s*)?and the winner is/im.test(ta.value)) { ta.value = ta.value.replace(/\s+$/, "") + "\n\n## And the Winner Is\u2026 [img: trophy]\n"; store.set("bab.prompts", ta.value); rebuild(); }
     store.set("bab.winnerVer", "script-1");
+  }
+  // Welcome, End and Credits cards now live in the script too. Add any that are missing, once.
+  if (store.get("bab.cardsVer") !== "script-1") {
+    var plain = ta.value.replace(/\s*\[[^\]]*\]/g, "");
+    if (!/^\s*##\s*welcome\b/im.test(plain)) ta.value = "## Welcome to [img: logo]\n* The first one ever!\n\n" + ta.value;
+    if (!/^\s*##\s*end(\s*card)?\s*([:\-\u2013\u2014]|$)/im.test(plain)) ta.value = ta.value.replace(/\s+$/, "") + "\n\n## End: Thanks for coming! [img: logo]\n";
+    if (!/^\s*##\s*(roll(ing)?\s+)?credits\s*(\|.*)?$/im.test(plain)) ta.value = ta.value.replace(/\s+$/, "") + "\n## Credits\n";
+    store.set("bab.prompts", ta.value); rebuild();
+    store.set("bab.cardsVer", "script-1");
   }
   function savePerformers() { store.set("bab.performers", JSON.stringify(performers)); renderPerformers(); rebuild(); }
   function renderPerformers() {
@@ -725,15 +739,16 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     var s = slides[idx];
     // Entering or leaving the credits starts or stops the roll and its music.
     var onCred = !!(s && s.t === "credits");
-    if (onCred && !wasCred) { roll = { t0: Date.now() + 800, pausedAt: null }; credDone = false; var m = credItems.music ? soundByRef(credItems.music) : null; if (m) { credMusicId = m.id; playSound(m, true); } }
+    if (onCred && !wasCred) { roll = { t0: Date.now() + 800, pausedAt: null }; credDone = false; var mref = (s && s.music) || credItems.music, m = mref ? soundByRef(mref) : null; if (m) { credMusicId = m.id; playSound(m, true); } }
     if (!onCred && wasCred) { roll = null; if (credMusicId && act[credMusicId]) fadeOut(credMusicId, 2); credMusicId = null; }
     wasCred = onCred;
-    $("credBtn").innerHTML = !(credItems.length || performers.length) ? "Add credits" : !onCred ? "Roll credits <kbd>C</kbd>" : roll && roll.pausedAt ? "Resume credits <kbd>P</kbd>" : "Pause credits <kbd>P</kbd>";
+    $("credBtn").innerHTML = credIdx() === -1 ? "Add credits" : !onCred ? "Roll credits <kbd>C</kbd>" : roll && roll.pausedAt ? "Resume credits <kbd>P</kbd>" : "Pause credits <kbd>P</kbd>";
     $("credBtn").classList.toggle("lit", onCred);
-    $("pos").textContent = !s ? "" : s.t === "credits" ? (roll && roll.pausedAt ? "Credits paused" : "Credits rolling (loops)") : s.t === "meet" ? "Meet the performers: " + ((s.names || [])[s.n - 1] || "") : s.t === "title" ? "Welcome card" : s.t === "sec" ? s.sec : s.t === "end" ? "End card" : s.t === "winner" ? (s.text || "And the winner is…") :
+    $("pos").textContent = !s ? "" : s.t === "credits" ? (roll && roll.pausedAt ? "Credits paused" : "Credits rolling (loops)") : s.t === "meet" ? "Meet the performers: " + ((s.names || [])[s.n - 1] || "") : s.t === "title" ? "Welcome card" : s.t === "blank" ? "Empty script" : s.t === "sec" ? s.sec : s.t === "end" ? "End card" : s.t === "winner" ? (s.text || "And the winner is…") :
       s.t === "num" ? "Prompt " + (s.i + 1) + " number card" : s.t === "video" ? "Prompt " + (s.i + 1) + " video playing" : s.t === "dir" ? "Line " + prompts[s.i].n + " · direction " + (s.d + 1) + " of " + prompts[s.i].dirs.length + (prompts[s.i].dirWho[s.d] ? " · " + prompts[s.i].dirWho[s.d] : "") : "Prompt " + (s.i + 1) + " of " + prompts.length;
     $("darkBtn").classList.toggle("lit", dark);
     $("darkBtn").textContent = dark ? "Blackout ON" : "Blackout";
+    paintCardWho();
     markList(); scrollNow();
     renderVideoPanel();
     send();
@@ -790,11 +805,13 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     if (s.t === "sec") { for (var k = idx; k < slides.length; k++) if (slides[k].i != null) return prompts[slides[k].i].secLine; return -1; }
     if (s.t === "meet" && prompts.meets && prompts.meets[s.mb]) return prompts.meets[s.mb].lines[s.n - 1];
     if (s.t === "winner" && s.line != null) return s.line;
+    if ((s.t === "title" || s.t === "end" || s.t === "credits") && s.line != null) return s.line;
     return -1;
   }
   function slideSfx(s) {
     if (!s) return "";
     if (s.t === "video" || s.t === "num") return s.i != null ? prompts[s.i].sfx : "";
+    if (s.t === "credits") return s.music || "";
     return s.sfx || "";
   }
   function paintCardSfx() {
@@ -807,6 +824,20 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     sel.disabled = ln < 0;
     sel.parentNode.title = ln < 0 ? "This card isn\u2019t part of the script, so it can\u2019t have a sound" : "Plays when this card comes up. Saved into the script as [sfx: \u2026]";
   }
+  function slideWho(s) {
+    if (!s) return "";
+    if (s.t === "dir") return prompts[s.i].dirWho[s.d] || "";
+    if (s.i != null) return prompts[s.i].who || "";
+    return s.who || "";
+  }
+  function paintCardWho() {
+    var b = $("cardWho"); if (!b) return;
+    var s = slides[idx], ln = slideLine(s), who = slideWho(s);
+    b.dataset.line = ln; b.dataset.who = who; b.dataset.label = $("pos").textContent || "this card";
+    b.disabled = ln < 0 || (s && (s.t === "meet" || s.t === "credits"));
+    b.textContent = who ? "👥 " + BAB.splitNames(who).join(", ") : "👥 Assign";
+  }
+  $("cardWho").onclick = function () { if (!this.disabled) openAssign(this); };
   function paintCardImg() {
     var sel = $("cardImg"); if (!sel || document.activeElement === sel) return;
     var s = slides[idx], ln = slideLine(s), cur = s && s.img || "", hit = cur ? imgFind(cur) : null;
@@ -833,6 +864,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   }
   function jump(k) { idx = Math.max(0, Math.min(slides.length - 1, k)); update(); }
   function toggleDark() { dark = !dark; update(); }
+  function welcomeIdx() { for (var k = 0; k < slides.length; k++) if (slides[k].t === "title") return k; return 0; }
   function credIdx() { for (var k = 0; k < slides.length; k++) if (slides[k].t === "credits") return k; return -1; }
   function winnerIdx() { for (var k = 0; k < slides.length; k++) if (slides[k].t === "winner") return k; return endIdx(); }
   function endIdx() { for (var k = 0; k < slides.length; k++) if (slides[k].t === "end") return k; return slides.length - 1; }
@@ -849,7 +881,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
 
   document.querySelector(".transport").addEventListener("click", function (e) {
     var b = e.target.closest("[data-act]"); if (!b) return;
-    ({ prev: function () { go(-1); }, next: function () { go(1); }, dark: toggleDark, home: function () { jump(0); }, end: function () { jump(endIdx()); }, winner: function () { jump(winnerIdx()); }, credits: function () { if (!(credItems.length || performers.length)) { setTab("credits"); $("credText").focus(); } else if (onCredits()) pauseCredits(); else rollCredits(); } })[b.dataset.act]();
+    ({ prev: function () { go(-1); }, next: function () { go(1); }, dark: toggleDark, home: function () { jump(welcomeIdx()); }, end: function () { jump(endIdx()); }, winner: function () { jump(winnerIdx()); }, credits: function () { if (credIdx() === -1) { setTab("prompts"); } else if (!(credItems.length || performers.length)) { setTab("credits"); $("credText").focus(); } else if (onCredits()) pauseCredits(); else rollCredits(); } })[b.dataset.act]();
   });
 
   // ================= Previews =================
@@ -1399,7 +1431,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     if (NEXT.indexOf(key) !== -1) { go(1); return true; }
     if (PREV.indexOf(key) !== -1) { go(-1); return true; }
     if (key === "b" || key === "B" || key === ".") { toggleDark(); return true; }
-    if (key === "Home") { jump(0); return true; }
+    if (key === "Home") { jump(welcomeIdx()); return true; }
     if (key === "End") { jump(endIdx()); return true; }
     if (key === "w" || key === "W") { jump(winnerIdx()); return true; }
     if (key === "c" || key === "C") { rollCredits(); return true; }

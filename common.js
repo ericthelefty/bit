@@ -1,7 +1,7 @@
 /* Build a Bit: shared helpers for the console (index.html) and the audience screen (screen.html). */
 var BAB = (function () {
   var CHANNEL = "build-a-bit";
-  var BUILD = "2026-11-22.7";   // bump on every change so an open audience window knows it is out of date
+  var BUILD = "2026-11-22.8";   // bump on every change so an open audience window knows it is out of date
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -42,6 +42,12 @@ var BAB = (function () {
     var name = sectionName(l), kind = "", sub = "";
     var m = name.match(/^mini-?game\s*[:\-–—]\s*(.+)$/i);
     if (m) { kind = "minigame"; name = m[1].trim(); }
+    var em = name.match(/^end(?:\s*card)?\s*(?:[:\-–—]\s*(.*))?$/i);
+    if (em) return { name: (em[1] || "").trim(), sub: "", kind: "end", art: "", alt: "" };
+    if (/^welcome\b/i.test(name)) return { name: name, sub: "", kind: "welcome", art: "", alt: "" };
+    if (/^(roll(ing)?\s+)?credits$/i.test(name)) return { name: name, sub: "", kind: "credits", art: "", alt: "" };
+    var wm = name.match(/^winner\s*[:\-–—]\s*(.+)$/i);
+    if (wm) return { name: wm[1].trim(), sub: "", kind: "winner", art: "", alt: "" };
     if (/^and the winner is\b/i.test(name)) return { name: name, sub: "", kind: "winner", art: "", alt: "" };
     if (/^meet the (performers|cast|players)$/i.test(name)) return { name: name, sub: "", kind: "meet", art: "", alt: "" };
     var ps = name.match(/^(.+?)\s*\(([^()]+)\)$/);
@@ -108,9 +114,9 @@ var BAB = (function () {
   var BUILTIN_IMAGES = [{ name: "trophy", label: "Chicken trophy", src: "art/trophy.png" }, { name: "logo", label: "Build a Bit logo", src: "logo.png" }];
   var BULLET = /^([*\-•–◦▪·]|\d+[.)])\s+/;
   function parse(text) {
-    var sec = { name: "", sub: "", kind: "" }, out = [], lastP = null, meets = [], meet = null, winners = [], cards = [], secN = 0;
+    var sec = { name: "", sub: "", kind: "" }, out = [], lastP = null, meets = [], meet = null, winners = [], cards = [], secN = 0, special = null;
     // A heading with nothing under it still gets its own title card.
-    function flushSec() { if (sec.name && sec.kind !== "meet" && !secN) cards.push({ at: out.length, sec: sec.name, sub: sec.sub, kind: sec.kind, art: sec.art, sfx: sec.sfx || "", img: sec.img || "", line: sec.line }); }
+    function flushSec() { if (sec.name && sec.kind !== "meet" && !secN) cards.push({ at: out.length, sec: sec.name, sub: sec.sub, kind: sec.kind, art: sec.art, sfx: sec.sfx || "", img: sec.img || "", who: sec.who || "", line: sec.line }); }
     String(text || "").split(/\r?\n/).forEach(function (raw, ln) {
       // [sfx: Air horn] anywhere on a line plays that sound when its card comes up.
       var sfx = "";
@@ -119,13 +125,24 @@ var BAB = (function () {
       raw = raw.replace(IMG_TAG, function (m, name) { img = name.trim(); return ""; });
       var l = raw.trim();
       if (!l) return;
-      if (isSection(l)) { flushSec(); secN = 0; }
-      if (isSection(l) && sectionInfo(l).kind === "winner") { winners.push({ text: sectionInfo(l).name, sfx: sfx, img: img, line: ln, at: out.length }); sec = { name: "", sub: "", kind: "" }; lastP = null; meet = null; return; }
-      if (isSection(l)) { sec = sectionInfo(l); sec.sfx = sfx; sec.img = img; sec.line = ln; lastP = null; meet = null; if (sec.kind === "meet") { meet = { names: [], sfx: [], imgs: [], lines: [], at: out.length, line: ln }; meets.push(meet); } return; }
+      var hwho = "";
+      if (isSection(l)) {
+        var hb = l.indexOf("|"); if (hb !== -1) { hwho = l.slice(hb + 1).trim(); l = l.slice(0, hb).trim(); }   // "## Heading | Rick"
+        flushSec(); secN = 0; special = null;
+        var si = sectionInfo(l);
+        if (si.kind === "winner") { winners.push({ text: si.name, sfx: sfx, img: img, who: hwho, line: ln, at: out.length }); sec = { name: "", sub: "", kind: "" }; lastP = null; meet = null; return; }
+        if (si.kind === "welcome" || si.kind === "end" || si.kind === "credits") {
+          special = { kind: si.kind, sec: si.name, text: si.name, sfx: sfx, img: img, who: hwho, line: ln, at: out.length, lines: [] };
+          cards.push(special); sec = { name: "", sub: "", kind: "" }; lastP = null; meet = null; return;
+        }
+      }
+      if (isSection(l)) { sec = sectionInfo(l); sec.sfx = sfx; sec.img = img; sec.who = hwho; sec.line = ln; lastP = null; meet = null; if (sec.kind === "meet") { meet = { names: [], sfx: [], imgs: [], lines: [], at: out.length, line: ln }; meets.push(meet); } return; }
       if (l.charAt(0) === "#") return;
       // An indented bullet under a line is a direction for that line.
       var indented = /^(\s{2,}|\t)/.test(raw) && BULLET.test(l);
       l = l.replace(BULLET, "");
+      // Lines under ## Welcome or ## End: … are extra lines on that card (like "The first one ever!").
+      if (special) { if (!indented && special.kind !== "credits") special.lines.push(l.split("|")[0].trim()); return; }
       // Under "## Meet the Performers", each line is one performer card (one name per Next).
       if (meet) { if (!indented) { meet.names.push(l.split("|")[0].trim()); meet.sfx.push(sfx); meet.imgs.push(img); meet.lines.push(ln); } return; }
       if (indented && lastP && !lastP.video) {
@@ -141,7 +158,7 @@ var BAB = (function () {
       var i = l.indexOf("|");
       var main = i === -1 ? l : l.slice(0, i).trim(), who = i === -1 ? "" : l.slice(i + 1).trim();
       main = main.replace(/^(["“”])["“”]+/, "$1");           // tidy a doubled opening quote
-      var p = { text: main, who: who, sec: sec.name, secSub: sec.sub, secKind: sec.kind, secArt: sec.art, video: null, dirs: [], dirWho: [], dirLine: [], dirSfx: [], dirImg: [], line: ln, sfx: sfx, img: img, secSfx: sec.sfx || "", secImg: sec.img || "", secLine: sec.line != null ? sec.line : -1 };
+      var p = { text: main, who: who, sec: sec.name, secSub: sec.sub, secKind: sec.kind, secArt: sec.art, video: null, dirs: [], dirWho: [], dirLine: [], dirSfx: [], dirImg: [], line: ln, sfx: sfx, img: img, secSfx: sec.sfx || "", secImg: sec.img || "", secWho: sec.who || "", secLine: sec.line != null ? sec.line : -1 };
       var vm = main.match(/^video\s*:\s*(.+)$/i);
       if (vm) {
         var pv = parseVideo(vm[1]);
@@ -163,7 +180,7 @@ var BAB = (function () {
 
   // opts: { numCard, showSec }
   function buildSlides(prompts, opts) {
-    var slides = [{ t: "title" }], last = null;
+    var slides = [], last = null;
     var meets = prompts.meets || [];
     function meetAt(i) {   // Meet the performers cards written into the script, one name per Next
       meets.forEach(function (b, bi) { if (b.at === i) b.names.forEach(function (_, k) { slides.push({ t: "meet", n: k + 1, names: b.names, mb: bi, sfx: b.sfx[k], img: b.imgs[k] }); }); });
@@ -177,14 +194,19 @@ var BAB = (function () {
     function blocksAt(i) {
       var bs = [];
       meets.forEach(function (b, bi) { if (b.at === i) bs.push({ line: b.line, go: function () { meetOne(b, bi); } }); });
-      winners.forEach(function (w, wi) { if (w.at === i) bs.push({ line: w.line, go: function () { slides.push({ t: "winner", text: w.text, sfx: w.sfx, img: w.img, line: w.line, wb: wi }); } }); });
-      cards.forEach(function (c, ci) { if (c.at === i) bs.push({ line: c.line, go: function () { slides.push({ t: "sec", sec: c.sec, sub: c.sub, kind: c.kind, art: c.art, sfx: c.sfx, img: c.img, line: c.line, cb: ci }); } }); });
+      winners.forEach(function (w, wi) { if (w.at === i) bs.push({ line: w.line, go: function () { slides.push({ t: "winner", text: w.text, sfx: w.sfx, img: w.img, who: w.who, line: w.line, wb: wi }); } }); });
+      cards.forEach(function (c, ci) { if (c.at === i) bs.push({ line: c.line, go: function () {
+        if (c.kind === "welcome") slides.push({ t: "title", text: c.text, lines: c.lines, sfx: c.sfx, img: c.img, who: c.who, line: c.line, cb: ci });
+        else if (c.kind === "end") slides.push({ t: "end", text: c.text, lines: c.lines, sfx: c.sfx, img: c.img, who: c.who, line: c.line, cb: ci });
+        else if (c.kind === "credits") slides.push({ t: "credits", music: c.sfx, line: c.line, cb: ci });   // [sfx] on ## Credits = credits music
+        else slides.push({ t: "sec", sec: c.sec, sub: c.sub, kind: c.kind, art: c.art, sfx: c.sfx, img: c.img, who: c.who, line: c.line, cb: ci });
+      } }); });
       bs.sort(function (a, b) { return a.line - b.line; }).forEach(function (b) { b.go(); });
     }
     function meetOne(b, bi) { b.names.forEach(function (_, k) { slides.push({ t: "meet", n: k + 1, names: b.names, mb: bi, sfx: b.sfx[k], img: b.imgs[k] }); }); }
     prompts.forEach(function (p, i) {
       blocksAt(i);
-      if (p.sec && p.sec !== last && opts.showSec) slides.push({ t: "sec", sec: p.sec, sub: p.secSub, kind: p.secKind, art: p.secArt, sfx: p.secSfx, img: p.secImg, line: p.secLine });
+      if (p.sec && p.sec !== last && opts.showSec) slides.push({ t: "sec", sec: p.sec, sub: p.secSub, kind: p.secKind, art: p.secArt, sfx: p.secSfx, img: p.secImg, who: p.secWho, line: p.secLine });
       last = p.sec;
       if (opts.numCard) slides.push({ t: "num", i: i });
       slides.push({ t: "prompt", i: i, sfx: p.sfx, img: p.img });
@@ -192,8 +214,7 @@ var BAB = (function () {
       p.dirs.forEach(function (_, d) { slides.push({ t: "dir", i: i, d: d, sfx: p.dirSfx[d], img: p.dirImg[d] }); });
     });
     blocksAt(prompts.length);
-    slides.push({ t: "end" });
-    if (opts.credits) slides.push({ t: "credits" });
+    if (!slides.length) slides.push({ t: "blank" });
     return slides;
   }
 
@@ -205,6 +226,9 @@ var BAB = (function () {
     if (s.names) v.names = s.names;
     if (s.t === "winner") v.text = s.text;
     if (s.img) v.imgRef = s.img;
+    if (s.i == null && s.text != null) v.text = s.text;
+    if (s.lines) v.lines = s.lines;
+    if (s.who) v.who = s.who;
     if (s.sec) { v.sec = s.sec; v.sub = s.sub; v.kind = s.kind; v.art = s.art; if (s.cb != null) v.solo = true; }
     if (s.i != null) {
       var p = prompts[s.i];
