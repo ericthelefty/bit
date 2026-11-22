@@ -117,6 +117,18 @@ ol.list li.panel { grid-template-columns: 2em 1fr auto; align-items: start; }
 ol.list .dirs li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: start; padding: 5px 7px; border-radius: 5px; background: var(--panel); border-left: 2px solid var(--line); font-size: 12.5px; cursor: pointer; }
 ol.list .dirs li:hover { border-left-color: var(--dim); }
 ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
+.guide { grid-column: 1 / -1; }
+.guide details { border-top: 1px solid var(--line); padding: 10px 0; }
+.guide summary { cursor: pointer; font-family: var(--display); font-weight: 900; text-transform: uppercase; letter-spacing: .05em; font-size: 15px; color: var(--chalk); }
+.guide summary:hover { color: var(--bulb); }
+.guide p, .guide li, .guide td { font-size: 14px; line-height: 1.5; color: var(--dim); }
+.guide b { color: var(--chalk); }
+.guide ul { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 4px; }
+.guide pre { background: var(--house); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--chalk); white-space: pre-wrap; overflow-wrap: anywhere; }
+.guide table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.guide th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--bulb); padding: 4px 8px 6px 0; }
+.guide td { padding: 6px 8px 6px 0; border-top: 1px solid var(--line); vertical-align: top; }
+.guide td:first-child { color: var(--chalk); font-weight: 700; white-space: nowrap; }
 .imglist { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 8px 0; }
 .imgitem { background: var(--house); border: 1px solid var(--line); border-radius: 8px; padding: 6px; display: grid; gap: 4px; }
 .imgitem img { width: 100%; height: 90px; object-fit: contain; background: #0c0b10; border-radius: 4px; }
@@ -338,27 +350,112 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
           <button class="btn go" type="button" id="perfAdd">Add</button>
         </div>
         <div class="chips" id="perfChips"></div>
-        <p class="hint">Assign performers to any prompt, minigame line or direction with the <b style="color:var(--chalk)">Assign</b> button in the running order on Run show. Their names show on the projector and are written into the script after a <code>|</code>.</p>
-        <span class="lbl" style="margin-top:6px">How to write them</span>
-        <p class="hint">One prompt per line. Add performers after a bar: <code>A sea shanty about a parking ticket | Dana &amp; Luis</code></p>
-        <p class="hint">Start a section with <code>## For Two Performers</code>. Its name shows under each prompt in that section.</p>
-        <p class="hint"><b style="color:var(--chalk)">Video prompts:</b> start the line with <code>video:</code>, then the YouTube link, then an optional time range and caption:</p>
-        <p class="hint"><code>video: https://youtu.be/abc123XYZ90 0:30-1:45 Dub this nature doc | Dana &amp; Luis</code></p>
-        <p class="hint">Add <code>vol:60</code> (or <code>60%</code>) after the link to set that clip's volume, e.g. <code>video: https://youtu.be/abc123XYZ90 vol:40 | Aaron</code>. Moving the console's video volume slider during the clip overrides it.</p>
-        <p class="hint">The screen shows the prompt card first. Press Next to play the clip full screen, then Next again to move on. The time range is optional, and a <code>?t=</code> in the link also sets the start.</p>
-        <p class="hint"><b style="color:var(--chalk)">Every card is in the script.</b> <code>## Welcome to [img: logo]</code> is the welcome card; lines under it (like <code>* The first one ever!</code>) show under the logo. <code>## End: Thanks for coming! [img: logo]</code> is the end card with confetti. <code>## Credits</code> rolls the credits from the Credits tab; put <code>[sfx: Song]</code> on it for credits music. A <code>## Heading</code> with nothing under it is a card of its own. Any line or heading can take <code>[img: …]</code>, <code>[sfx: …]</code> and <code>| Names</code>, or set them for the card on screen with the 🖼, ♪ and 👥 buttons on Run show.</p>
-        <p class="hint"><b style="color:var(--chalk)">Meet the performers:</b> start a section with <code>## Meet the Performers</code> and put one name per line under it. Each Next adds the next name to the card, in the order you write them. Put it wherever you want it in the show, and add <code>[sfx: …]</code> to a name to play walk-on music.</p>
-        <p class="hint"><b style="color:var(--chalk)">Winner card:</b> a heading that starts with <code>## And the Winner Is…</code> shows the winner card, with your heading as its words. Add <code>[img: trophy]</code> for the chicken trophy and <code>[sfx: Drumroll]</code> for a sound. Put it where you want it in the show.</p>
-        <p class="hint"><b style="color:var(--chalk)">Minigames:</b> start a section with <code>Minigame: It’s D’improv (Take Some Direction)</code>. The part in parentheses shows as a subtitle on the minigame card.</p>
-        <p class="hint"><b style="color:var(--chalk)">Directions:</b> indent bullets under a line and each one becomes its own step. The line stays on screen, small, and each Next reveals the next direction. Add <code>| Name</code> after a direction to show whose turn it is.</p>
-        <p class="hint"><code>* “That’s what she said.”</code><br><code>&nbsp;&nbsp;&nbsp;* Italian.</code><br><code>&nbsp;&nbsp;&nbsp;* More Italian.</code></p>
-        <p class="hint"><b style="color:var(--chalk)">Sound for a card:</b> add <code>[sfx: Air horn]</code> anywhere on a line (a prompt, a direction, a video line or a section heading) and that sound plays when the card comes up. Use the sound's name from the Sounds tab, or its pad number like <code>[sfx: 3]</code>. No other sounds play on their own; only tagged cards (and the sound board when you press it).</p>
-        <p class="hint">Bullets are stripped, blank lines are skipped, and lines starting with a single <code>#</code> are notes that never show.</p>
+        <p class="hint">This list fills the <b style="color:var(--chalk)">Assign</b> menus on Run show and the performers in the credits.</p>
+        <p class="hint"><a href="#guide" style="color:var(--bulb)">Script guide ↓</a>: how to write every kind of card, with examples.</p>
         <div id="warns" class="warnbox" hidden></div>
         <span class="lbl" style="margin-top:6px">Options</span>
         <label class="check"><input type="checkbox" id="numCard"> <span>Show a big “Prompt #” card before each prompt</span></label>
         <label class="check"><input type="checkbox" id="showSec" checked> <span>Show a section card when a new section starts</span></label>
         <label class="check"><input type="checkbox" id="showDots" checked> <span>Show progress dots on screen</span></label>
+      </div>
+
+      <div class="card guide" id="guide">
+        <span class="lbl">Script guide</span>
+        <p class="hint" style="margin-top:0">The script is the whole show, top to bottom. Every card the audience sees comes from a line in it, and Next steps through them in order. Edit it here, or use the 🖼 ♪ 👥 buttons on Run show, which write into the script for you.</p>
+
+        <details open>
+          <summary>Quick start: the shape of a show</summary>
+<pre>## Welcome to [img: logo]
+* The first one ever!
+
+## Meet the Performers
+* Aaron Ketzenberger
+* Alisa Patten
+* Rick Toledo
+
+## For One Performer
+* Realizing that wasn’t toothpaste. | Aaron
+
+Minigame: Produce a Ruckus!
+* World’s largest zipper.
+
+## And the Winner Is… [img: trophy] [sfx: Drumroll]
+
+## End: Thanks for coming! [img: logo]
+## Credits [sfx: Theme]</pre>
+        </details>
+
+        <details>
+          <summary>Make a new card</summary>
+          <p>Pick the kind of card, write its line where you want it in the show, and it appears in the running order right away.</p>
+          <table>
+            <tr><th>Card</th><th>Write</th><th>What shows</th></tr>
+            <tr><td>Prompt</td><td><code>* Your prompt here.</code></td><td>The prompt, big. Any line that isn’t a heading is a prompt.</td></tr>
+            <tr><td>Section</td><td><code>## For Two Performers</code></td><td>A title card before the prompts under it. Its name shows under each of those prompts.</td></tr>
+            <tr><td>Minigame</td><td><code>Minigame: Name (Subtitle)</code></td><td>A minigame title card. The part in parentheses is the subtitle.</td></tr>
+            <tr><td>A card of its own</td><td><code>## This person! [img: trophy]</code></td><td>Any heading with nothing under it: its words, big, with its picture.</td></tr>
+            <tr><td>Welcome</td><td><code>## Welcome to [img: logo]</code></td><td>Gold heading words, the picture big with sparkles, and each line under it as a red banner.</td></tr>
+            <tr><td>Meet the performers</td><td><code>## Meet the Performers</code><br>then one name per line</td><td>One name added per Next, with their cutout art when there is one.</td></tr>
+            <tr><td>Winner</td><td><code>## And the Winner Is…</code></td><td>The heading words in gold, with its picture (add <code>[img: trophy]</code> for the chicken).</td></tr>
+            <tr><td>End</td><td><code>## End: Thanks for coming!</code></td><td>The words after “End:”, with confetti. Lines under it show smaller.</td></tr>
+            <tr><td>Credits</td><td><code>## Credits</code></td><td>Rolls the credits you write on the Credits tab, looping.</td></tr>
+            <tr><td>Video</td><td><code>* video: https://youtu.be/… Caption</code></td><td>The caption card, then the clip full screen on the next Next.</td></tr>
+          </table>
+        </details>
+
+        <details>
+          <summary>Add to any card: performers, pictures, sounds</summary>
+          <p>Each of these works on any line or heading, and you can use them together. The order on the line doesn’t matter, except names go last.</p>
+<pre>* Training Day but you’re at a vegan bakery. [img: donut] [sfx: Siren] | Alisa &amp; Rick</pre>
+          <ul>
+            <li><b>Performers:</b> put <code>| Name</code> at the end. Separate names with commas or <code>&amp;</code>. Each name shows in its own red oval. Or press <b>👥 Assign</b> on Run show.</li>
+            <li><b>Picture:</b> <code>[img: name]</code>. Add pictures in the <b>Images</b> box above and use the name shown there. <code>trophy</code> and <code>logo</code> are always there. Or pick one from <b>🖼</b> on Run show.</li>
+            <li><b>Sound:</b> <code>[sfx: name]</code> plays when the card comes up. Use the sound’s name from the Sounds tab, or its pad number like <code>[sfx: 3]</code>. Or pick one from <b>♪</b> on Run show. On <code>## Credits</code>, it’s the credits music. Sounds only ever play when a card asks for them (or when you press the sound board).</li>
+          </ul>
+        </details>
+
+        <details>
+          <summary>Directions (like D’improv)</summary>
+          <p>Indent bullets under a line. The line stays on screen, small, and each Next reveals the next direction. Directions can have their own <code>| Name</code>, picture and sound.</p>
+<pre>Minigame: It’s Not Delivery, It’s D’improv (Take Some Direction)
+* “That’s what she said.”
+   * Italian. | Aaron
+   * More Italian. [sfx: Accordion]
+   * You’re literally a bowl of spaghetti.</pre>
+        </details>
+
+        <details>
+          <summary>Video prompts</summary>
+          <p>Start the line with <code>video:</code>, then the YouTube link. After the link you can add a time range, a volume and a caption.</p>
+<pre>* video: https://youtu.be/abc123XYZ90 0:30-1:45 vol:60 Dub this nature doc | Dana</pre>
+          <ul>
+            <li>The time range is optional; a <code>?t=</code> in the link also sets the start.</li>
+            <li><code>vol:60</code> (or <code>60%</code>) sets the clip’s volume. Moving the video volume slider on Run show overrides it.</li>
+            <li>The caption card comes first; press Next to play the clip, then Next again to move on.</li>
+          </ul>
+        </details>
+
+        <details>
+          <summary>Notes, order and tidying</summary>
+          <ul>
+            <li>A line starting with a single <code>#</code> is a note for you. It never shows.</li>
+            <li>Blank lines are ignored, and bullets (<code>*</code>, <code>-</code>, <code>1.</code>) are stripped, so paste from anywhere.</li>
+            <li>To move a card, move its line. Cards come up in the order they’re written.</li>
+            <li>To remove a card, delete its line (or put <code>#</code> in front to keep it for later).</li>
+            <li><b>Shuffle within sections</b> mixes up the prompts inside each section and leaves headings where they are.</li>
+          </ul>
+        </details>
+
+        <details>
+          <summary>Running the show</summary>
+          <ul>
+            <li><b>Next</b> (→, Space or a clicker) and <b>Back</b> (←) step through the cards. Click any card in the running order to jump to it.</li>
+            <li><b>Welcome</b>, <b>Winner</b> (W), <b>End card</b> and <b>Roll credits</b> (C) jump to those cards wherever they are in the script.</li>
+            <li><b>Blackout</b> (B) blanks the screen without losing your place.</li>
+            <li><b>Buzzer</b> (Z) plays a random sound with “buzzer” in its name. <b>Mute</b> (X) stops all sounds.</li>
+            <li>The full list of keys is on Run show, under the transport buttons.</li>
+          </ul>
+        </details>
       </div>
     </div>
   </section>
