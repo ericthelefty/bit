@@ -60,7 +60,7 @@ kbd { font-family: var(--body); font-weight: 800; font-size: 11.5px; background:
 .warnbox { border: 1px solid rgba(255,190,61,.5); background: rgba(255,190,61,.08); color: var(--chalk); border-radius: 8px; padding: 10px 12px; font-size: 13.5px; line-height: 1.45; }
 
 /* ---------- Prompts tab ---------- */
-.ptab { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr); gap: 20px; max-width: 1280px; }
+.ptab { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr); gap: 20px; max-width: 1280px; }
 @media (max-width: 900px) { .ptab { grid-template-columns: 1fr; } }
 
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -117,7 +117,9 @@ ol.list li.panel { grid-template-columns: 2em 1fr auto; align-items: start; }
 ol.list .dirs li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: start; padding: 5px 7px; border-radius: 5px; background: var(--panel); border-left: 2px solid var(--line); font-size: 12.5px; cursor: pointer; }
 ol.list .dirs li:hover { border-left-color: var(--dim); }
 ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
-.guide { grid-column: 1 / -1; }
+.pcol { display: grid; gap: 20px; align-content: start; min-width: 0; }
+.pguide { position: sticky; top: 84px; max-height: calc(100vh - 104px); overflow: auto; border-radius: 12px; }
+@media (max-width: 900px) { .pguide { position: static; max-height: none; } }
 .guide details { border-top: 1px solid var(--line); padding: 10px 0; }
 .guide summary { cursor: pointer; font-family: var(--display); font-weight: 900; text-transform: uppercase; letter-spacing: .05em; font-size: 15px; color: var(--chalk); }
 .guide summary:hover { color: var(--bulb); }
@@ -323,6 +325,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   <!-- ================= PROMPTS ================= -->
   <section id="tab-prompts" role="tabpanel" hidden>
     <div class="ptab">
+      <div class="pcol">
       <div class="card">
         <label class="lbl" for="showName">Subtitle under the logo (optional)</label>
         <input type="text" id="showName" placeholder="Shows on the title and end cards">
@@ -335,6 +338,20 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
         </div>
       </div>
       <div class="card">
+        <span class="lbl">Performers</span>
+        <div class="row" style="flex-wrap:nowrap">
+          <input type="text" id="perfIn" placeholder="Add a performer's name" aria-label="Performer name">
+          <button class="btn go" type="button" id="perfAdd">Add</button>
+        </div>
+        <div class="chips" id="perfChips"></div>
+        <p class="hint">This list fills the <b style="color:var(--chalk)">Assign</b> menus on Run show and the performers in the credits.</p>
+                <div id="warns" class="warnbox" hidden></div>
+        <span class="lbl" style="margin-top:6px">Options</span>
+        <label class="check"><input type="checkbox" id="numCard"> <span>Show a big “Prompt #” card before each prompt</span></label>
+        <label class="check"><input type="checkbox" id="showSec" checked> <span>Show a section card when a new section starts</span></label>
+        <label class="check"><input type="checkbox" id="showDots" checked> <span>Show progress dots on screen</span></label>
+      </div>
+      <div class="card">
         <span class="lbl">Images</span>
         <div class="row">
           <label class="btn" style="cursor:pointer">Add images<input type="file" id="imgIn" accept="image/*" multiple hidden></label>
@@ -343,22 +360,8 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
         <div class="imglist" id="imgList"></div>
         <p class="hint">Put a picture on any card with <code>[img: name]</code> on its line, or pick one from the 🖼 menu above the On screen preview on Run show. Built in: <code>[img: trophy]</code> (the chicken trophy) and <code>[img: logo]</code>.</p>
       </div>
-      <div class="card">
-        <span class="lbl">Performers</span>
-        <div class="row" style="flex-wrap:nowrap">
-          <input type="text" id="perfIn" placeholder="Add a performer's name" aria-label="Performer name">
-          <button class="btn go" type="button" id="perfAdd">Add</button>
-        </div>
-        <div class="chips" id="perfChips"></div>
-        <p class="hint">This list fills the <b style="color:var(--chalk)">Assign</b> menus on Run show and the performers in the credits.</p>
-        <p class="hint"><a href="#guide" style="color:var(--bulb)">Script guide ↓</a>: how to write every kind of card, with examples.</p>
-        <div id="warns" class="warnbox" hidden></div>
-        <span class="lbl" style="margin-top:6px">Options</span>
-        <label class="check"><input type="checkbox" id="numCard"> <span>Show a big “Prompt #” card before each prompt</span></label>
-        <label class="check"><input type="checkbox" id="showSec" checked> <span>Show a section card when a new section starts</span></label>
-        <label class="check"><input type="checkbox" id="showDots" checked> <span>Show progress dots on screen</span></label>
       </div>
-
+      <div class="pcol pguide">
       <div class="card guide" id="guide">
         <span class="lbl">Script guide</span>
         <p class="hint" style="margin-top:0">The script is the whole show, top to bottom. Every card the audience sees comes from a line in it, and Next steps through them in order. Edit it here, or use the 🖼 ♪ 👥 buttons on Run show, which write into the script for you.</p>
@@ -456,6 +459,7 @@ Minigame: Produce a Ruckus!
             <li>The full list of keys is on Run show, under the transport buttons.</li>
           </ul>
         </details>
+      </div>
       </div>
     </div>
   </section>
