@@ -220,7 +220,7 @@ body.awake #lost.on { display: block; }
       return '<div class="tag enter">Next up</div><div class="big-title enter">' + esc(s.sec) + '</div>' + (s.sub ? '<div class="mg-sub enter">' + esc(s.sub) + '</div>' : '');
     }
     if (s.t === "meet") {
-      var list = (st.performers || []).slice(0, s.n);
+      var list = (s.names || []).slice(0, s.n).map(function (n) { return { name: n, art: BAB.performerArt(n) }; });
       return '<div class="tag enter">Meet the performers</div><div class="meet">' + list.map(function (p, k) {
         var anim = k === list.length - 1 ? ' wiggle' : '';
         return p.art ? '<img class="perf-art' + anim + '" src="' + esc(p.art) + '" alt="' + esc(p.name) + '">' : '<div class="perf-name' + anim + '">' + esc(p.name) + '</div>';

@@ -323,6 +323,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
         <p class="hint"><code>video: https://youtu.be/abc123XYZ90 0:30-1:45 Dub this nature doc | Dana &amp; Luis</code></p>
         <p class="hint">Add <code>vol:60</code> (or <code>60%</code>) after the link to set that clip's volume, e.g. <code>video: https://youtu.be/abc123XYZ90 vol:40 | Aaron</code>. Moving the console's video volume slider during the clip overrides it.</p>
         <p class="hint">The screen shows the prompt card first. Press Next to play the clip full screen, then Next again to move on. The time range is optional, and a <code>?t=</code> in the link also sets the start.</p>
+        <p class="hint"><b style="color:var(--chalk)">Meet the performers:</b> start a section with <code>## Meet the Performers</code> and put one name per line under it. Each Next adds the next name to the card, in the order you write them. Put it wherever you want it in the show, and add <code>[sfx: …]</code> to a name to play walk-on music.</p>
         <p class="hint"><b style="color:var(--chalk)">Minigames:</b> start a section with <code>Minigame: It’s D’improv (Take Some Direction)</code>. The part in parentheses shows as a subtitle on the minigame card.</p>
         <p class="hint"><b style="color:var(--chalk)">Directions:</b> indent bullets under a line and each one becomes its own step. The line stays on screen, small, and each Next reveals the next direction. Add <code>| Name</code> after a direction to show whose turn it is.</p>
         <p class="hint"><code>* “That’s what she said.”</code><br><code>&nbsp;&nbsp;&nbsp;* Italian.</code><br><code>&nbsp;&nbsp;&nbsp;* More Italian.</code></p>
@@ -333,7 +334,6 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
         <label class="check"><input type="checkbox" id="numCard"> <span>Show a big “Prompt #” card before each prompt</span></label>
         <label class="check"><input type="checkbox" id="showSec" checked> <span>Show a section card when a new section starts</span></label>
         <label class="check"><input type="checkbox" id="showDots" checked> <span>Show progress dots on screen</span></label>
-        <label class="check"><input type="checkbox" id="meetOn" checked> <span>Show a “Meet the performers” card after the welcome card (one name per Next, in the order of the Performers list)</span></label>
       </div>
     </div>
   </section>
@@ -417,7 +417,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   };
 
-  var EXAMPLES = "# 1. Minigame\n\nMinigame: It’s Not Delivery, It’s D’improv (Take Some Direction)\n\n* “I’m not in danger, I AM the danger.”\n   * No direction.\n   * Bigger.\n   * Bigger.\n   * You really hate the director.\n   * You need to check your phone during the scene without anyone noticing.\n   * Your best Eric impression.\n* “That’s what she said.”\n   * Italian.\n   * More Italian.\n   * You’re literally a mob boss.\n   * You’re literally a bowl of spaghetti.\n   * Even more Italian.\n   * Italian Michael Scott realizing he crossed the line.\n* “You come at the king, you best not miss.”\n   * Flirty.\n   * Even more flirty.\n   * You’re in love with the first row.\n   * You just found out the first row is cheating on you.\n   * With the first row.\n* “I wish I knew how to quit you.”\n   * Country.\n   * Extra yeehaw.\n   * You’re an auctioneer.\n   * Porky the Pig as an auctioneer.\n* “Just keep swimming.”\n   * Anxious.\n   * Unsure if you know how to swim.\n   * Jaws is right behind you.\n   * Princess Ariel trying out for the track team.\n\n# 2. Prompts for one performer\n\n## For One Performer\n* An undercover alien playing flip cup for the first time.\n* Realizing that wasn’t toothpaste.\n* Frodo asks Sam for space.\n* Your air fryer becomes sentient.\n* When Netflix knows you too well.\n* Auctioneer desperate for the attention of their ex in the audience.\n* The narrator in a fairy tale realizes how problematic the story is.\n* The last surviving dodo bird’s final words.\n* Explaining to your parents that you’re getting legally emancipated because they are TOO supportive.\n\n# 3. Minigame: sound effects\n\nMinigame: Produce a Ruckus!\n* Roller coaster climbing up the first hill.\n* A kettle screaming because it’s ready.\n* World’s largest zipper.\n\n# 4. Prompts for two performers\n\n## For Two Performers\n* Jack is pretty sure there’s room on the floating door for him.\n* HR needs to talk about your peanut butter usage.\n* The sandwich artist needs you to appreciate their art.\n* The more they dislike you the more you’re in love.\n* Cat-Dog after they have surgery to separate their bodies.\n* The fuzzy dice hanging from the rearview mirror find out one of them is a flat earther.\n\n# 5. Minigame: react to YouTube clips\n\nMinigame: Would You Look at That!\n# Happy cows\n* video: https://www.youtube.com/watch?v=uA8dAnlD51o\n\n# 6. Prompts for three performers\n\n## For Three Performers\n* The men’s restroom line is actually very warm and inclusive.\n* Mickey and Donald finally tell Minnie the truth.\n* The crumbs under your fridge unionized against Big Broom.\n* Live, Laugh, and Love brainstorming a rebrand.\n* Three line cooks have no idea what they’re doing.\n* Three delivery drivers competing at the Delivery D’lympics.\n\n# 7. Winner announced, then roll credits (C)";
+  var EXAMPLES = "# Meet the performers: one name per Next\n## Meet the Performers\n* Aaron Ketzenberger\n* Alisa Patten\n* Rick Toledo\n\n# 1. Minigame\n\nMinigame: It’s Not Delivery, It’s D’improv (Take Some Direction)\n\n* “I’m not in danger, I AM the danger.”\n   * No direction.\n   * Bigger.\n   * Bigger.\n   * You really hate the director.\n   * You need to check your phone during the scene without anyone noticing.\n   * Your best Eric impression.\n* “That’s what she said.”\n   * Italian.\n   * More Italian.\n   * You’re literally a mob boss.\n   * You’re literally a bowl of spaghetti.\n   * Even more Italian.\n   * Italian Michael Scott realizing he crossed the line.\n* “You come at the king, you best not miss.”\n   * Flirty.\n   * Even more flirty.\n   * You’re in love with the first row.\n   * You just found out the first row is cheating on you.\n   * With the first row.\n* “I wish I knew how to quit you.”\n   * Country.\n   * Extra yeehaw.\n   * You’re an auctioneer.\n   * Porky the Pig as an auctioneer.\n* “Just keep swimming.”\n   * Anxious.\n   * Unsure if you know how to swim.\n   * Jaws is right behind you.\n   * Princess Ariel trying out for the track team.\n\n# 2. Prompts for one performer\n\n## For One Performer\n* An undercover alien playing flip cup for the first time.\n* Realizing that wasn’t toothpaste.\n* Frodo asks Sam for space.\n* Your air fryer becomes sentient.\n* When Netflix knows you too well.\n* Auctioneer desperate for the attention of their ex in the audience.\n* The narrator in a fairy tale realizes how problematic the story is.\n* The last surviving dodo bird’s final words.\n* Explaining to your parents that you’re getting legally emancipated because they are TOO supportive.\n\n# 3. Minigame: sound effects\n\nMinigame: Produce a Ruckus!\n* Roller coaster climbing up the first hill.\n* A kettle screaming because it’s ready.\n* World’s largest zipper.\n\n# 4. Prompts for two performers\n\n## For Two Performers\n* Jack is pretty sure there’s room on the floating door for him.\n* HR needs to talk about your peanut butter usage.\n* The sandwich artist needs you to appreciate their art.\n* The more they dislike you the more you’re in love.\n* Cat-Dog after they have surgery to separate their bodies.\n* The fuzzy dice hanging from the rearview mirror find out one of them is a flat earther.\n\n# 5. Minigame: react to YouTube clips\n\nMinigame: Would You Look at That!\n# Happy cows\n* video: https://www.youtube.com/watch?v=uA8dAnlD51o\n\n# 6. Prompts for three performers\n\n## For Three Performers\n* The men’s restroom line is actually very warm and inclusive.\n* Mickey and Donald finally tell Minnie the truth.\n* The crumbs under your fridge unionized against Big Broom.\n* Live, Laugh, and Love brainstorming a rebrand.\n* Three line cooks have no idea what they’re doing.\n* Three delivery drivers competing at the Delivery D’lympics.\n\n# 7. Winner announced, then roll credits (C)";
 
   var bc = new BroadcastChannel(BAB.CHANNEL);
   function post(m) { bc.postMessage(m); }
@@ -445,8 +445,6 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   numCard.checked = store.get("bab.numCard") === "1";
   showSec.checked = store.get("bab.sec") !== "0";
   showDots.checked = store.get("bab.dots") !== "0";
-  var meetOn = $("meetOn"); meetOn.checked = store.get("bab.meet") !== "0";
-  meetOn.addEventListener("change", function () { store.set("bab.meet", meetOn.checked ? "1" : "0"); rebuild(); });
 
   var credText = $("credText"), credSpeed = $("credSpeed");
   credText.value = store.get("bab.credits") || "";
@@ -465,7 +463,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     var curI = slides[idx] ? slides[idx].i : null, curT = slides[idx] ? slides[idx].t : null;
     prompts = BAB.parse(ta.value);
     credItems = BAB.parseCredits(credText.value);
-    slides = BAB.buildSlides(prompts, { numCard: numCard.checked, showSec: showSec.checked, credits: credItems.length > 0 || performers.length > 0, meet: meetOn.checked ? performers.length : 0 });
+    slides = BAB.buildSlides(prompts, { numCard: numCard.checked, showSec: showSec.checked, credits: credItems.length > 0 || performers.length > 0 });
     // Try to stay on the same prompt after an edit.
     if (curI != null) { for (var k = 0; k < slides.length; k++) if (slides[k].i === curI && slides[k].t === curT) { idx = k; break; } }
     else if (curT) { for (var k2 = 0; k2 < slides.length; k2++) if (slides[k2].t === curT && curT !== "sec") { idx = k2; break; } }
@@ -495,10 +493,17 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     $("count").textContent = prompts.length + (prompts.length === 1 ? " prompt" : " prompts");
     var ol = $("list");
     if (!prompts.length) { ol.innerHTML = '<li style="cursor:default"><span></span><span class="empty">No prompts yet. Add some on the Script tab.</span></li>'; return; }
-    var last = null;
+    var last = null, meets = prompts.meets || [];
+    function meetHd(i) {
+      return meets.map(function (b, bi) {
+        if (b.at !== i) return "";
+        return '<div class="sechd" data-meet="' + bi + '" tabindex="0" title="Show the Meet the performers card">Meet the performers</div>' +
+          '<ol class="dirs">' + b.names.map(function (n, k) { return '<li data-mb="' + bi + '" data-mn="' + (k + 1) + '"><span>' + esc(n) + sfxTag(b.sfx[k]) + '</span></li>'; }).join("") + '</ol>';
+      }).join("");
+    }
     ol.innerHTML = prompts.map(function (p, i) {
-      var h = "";
-      if (p.sec !== last) { last = p.sec; if (p.sec) h = '<div class="sechd" data-first="' + i + '" tabindex="0" title="Show this section\u2019s title card">' + (p.secKind === "minigame" ? '<span class="v" style="background:var(--curtain);color:var(--chalk)">MINIGAME</span>' : "") + esc(p.sec) + sfxTag(p.secSfx) + '</div>'; }
+      var h = meetHd(i);
+      if (p.sec !== last) { last = p.sec; if (p.sec) h += '<div class="sechd" data-first="' + i + '" tabindex="0" title="Show this section\u2019s title card">' + (p.secKind === "minigame" ? '<span class="v" style="background:var(--curtain);color:var(--chalk)">MINIGAME</span>' : "") + esc(p.sec) + sfxTag(p.secSfx) + '</div>'; }
       var hasDirs = p.dirs.length > 0;
       var dirs = hasDirs ? '<ol class="dirs">' + p.dirs.map(function (d, k) {
         return '<li data-i="' + i + '" data-d="' + k + '"><span>' + esc(d) + sfxTag(p.dirSfx[k]) + whoTags(p.dirWho[k]) + '</span>' +
@@ -510,7 +515,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
         (p.bad ? '<span class="err">' + esc(p.bad) + '</span>' : "") + '</span>' +
         (hasDirs ? '<span></span>' : '<button class="asg" type="button" data-line="' + p.line + '" data-who="' + esc(p.who || "") + '" data-label="' + esc(p.text || "Video") + '">Assign</button>') +
         dirs + '</li>';
-    }).join("");
+    }).join("") + meetHd(prompts.length);
     markList();
   }
   function curPromptIndex() {
@@ -547,6 +552,9 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     if (ab) { e.stopPropagation(); openAssign(ab); return; }
     var hd = e.target.closest(".sechd[data-first]");
     if (hd) { jumpToSection(+hd.dataset.first); return; }
+    var mh = e.target.closest("[data-meet],[data-mb]");
+    if (mh) { var mb = +(mh.dataset.meet != null ? mh.dataset.meet : mh.dataset.mb), mn = +(mh.dataset.mn || 1);
+      for (var q0 = 0; q0 < slides.length; q0++) if (slides[q0].t === "meet" && slides[q0].mb === mb && slides[q0].n === mn) { jump(q0); cardSound(slides[q0]); break; } return; }
     var dl = e.target.closest(".dirs li[data-d]");
     if (dl) { var di = +dl.dataset.i, dd = +dl.dataset.d; for (var q = 0; q < slides.length; q++) if (slides[q].t === "dir" && slides[q].i === di && slides[q].d === dd) { jump(q); cardSound(slides[q]); break; } return; }
     var li = e.target.closest("li[data-i]"); if (!li) return;
@@ -560,7 +568,14 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
   // Show-night cast: fill it in if the list is empty, and make sure the Meet the performers cards are on (once).
   var CAST = ["Aaron Ketzenberger", "Alisa Patten", "Rick Toledo"];
   if (!performers.length) { performers = CAST.slice(); store.set("bab.performers", JSON.stringify(performers)); }
-  if (store.get("bab.castVer") !== "2026-11-22") { meetOn.checked = true; store.set("bab.meet", "1"); store.set("bab.castVer", "2026-11-22"); }
+  // Meet the performers now lives in the script. Add it once to a script that doesn't have it yet.
+  if (store.get("bab.meetVer") !== "script-1") {
+    if (!/^\s*(##\s*)?meet the (performers|cast|players)\s*:?\s*$/im.test(ta.value) && store.get("bab.meet") !== "0") {
+      ta.value = "# Meet the performers: one name per Next\n## Meet the Performers\n" + performers.map(function (n) { return "* " + n; }).join("\n") + "\n\n" + ta.value;
+      store.set("bab.prompts", ta.value); rebuild();
+    }
+    store.set("bab.meetVer", "script-1");
+  }
   function savePerformers() { store.set("bab.performers", JSON.stringify(performers)); renderPerformers(); rebuild(); }
   function renderPerformers() {
     $("perfChips").innerHTML = performers.length ? performers.map(function (n, k) { return '<span class="chip">' + esc(n) + '<button type="button" data-k="' + k + '" aria-label="Remove ' + esc(n) + '">×</button></span>'; }).join("") : '<span class="hint">No performers yet.</span>';
@@ -679,7 +694,7 @@ ol.list .dirs li.now { border-left-color: var(--bulb); background: #332c45; }
     wasCred = onCred;
     $("credBtn").innerHTML = !(credItems.length || performers.length) ? "Add credits" : !onCred ? "Roll credits <kbd>C</kbd>" : roll && roll.pausedAt ? "Resume credits <kbd>P</kbd>" : "Pause credits <kbd>P</kbd>";
     $("credBtn").classList.toggle("lit", onCred);
-    $("pos").textContent = !s ? "" : s.t === "credits" ? (roll && roll.pausedAt ? "Credits paused" : "Credits rolling (loops)") : s.t === "meet" ? "Meet the performers: " + (performers[s.n - 1] || "") : s.t === "title" ? "Welcome card" : s.t === "sec" ? s.sec : s.t === "end" ? "End card" : s.t === "winner" ? "And the winner is…" :
+    $("pos").textContent = !s ? "" : s.t === "credits" ? (roll && roll.pausedAt ? "Credits paused" : "Credits rolling (loops)") : s.t === "meet" ? "Meet the performers: " + ((s.names || [])[s.n - 1] || "") : s.t === "title" ? "Welcome card" : s.t === "sec" ? s.sec : s.t === "end" ? "End card" : s.t === "winner" ? "And the winner is…" :
       s.t === "num" ? "Prompt " + (s.i + 1) + " number card" : s.t === "video" ? "Prompt " + (s.i + 1) + " video playing" : s.t === "dir" ? "Line " + prompts[s.i].n + " · direction " + (s.d + 1) + " of " + prompts[s.i].dirs.length + (prompts[s.i].dirWho[s.d] ? " · " + prompts[s.i].dirWho[s.d] : "") : "Prompt " + (s.i + 1) + " of " + prompts.length;
     $("darkBtn").classList.toggle("lit", dark);
     $("darkBtn").textContent = dark ? "Blackout ON" : "Blackout";
